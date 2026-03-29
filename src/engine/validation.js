@@ -4,7 +4,7 @@ import { callKimi } from './kimi.js';
 import { archetypes } from '../agents/archetypes.js';
 import { broadcast } from './discussion.js';
 import { verifyFact, webSearch, fetchPage } from './tools.js';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 
 const QUEST_DIR = join(process.cwd(), 'src/data/quests');
@@ -187,6 +187,16 @@ REASON: one sentence explaining your vote (stay in character)`;
 
   db.prepare('UPDATE brain_artifacts SET validation_status = ? WHERE id = ?').run(finalStatus, artifactId);
   broadcast('artifact-status', { id: artifactId, status: finalStatus, approvals, rejections });
+
+  // Auto-delete rejected artifacts + their validations + .md file
+  if (finalStatus === 'rejected') {
+    const filepath = join(QUEST_DIR, artifact.filename);
+    try { unlinkSync(filepath); } catch (e) { /* file may not exist */ }
+    db.prepare('DELETE FROM artifact_validations WHERE artifact_id = ?').run(artifactId);
+    db.prepare('DELETE FROM brain_artifacts WHERE id = ?').run(artifactId);
+    console.log(`[Validation] Rejected artifact "${artifact.title}" deleted`);
+    broadcast('artifact-deleted', { id: artifactId, title: artifact.title });
+  }
 
   const statusEmoji = finalStatus === 'validated' ? '🟢' : finalStatus === 'rejected' ? '🔴' : '🟡';
   console.log(`[Validation] "${artifact.title}" → ${finalStatus} (${approvals} approve, ${rejections} reject, ${factsVerified}/${factsChecked} facts verified)`);
