@@ -690,19 +690,21 @@ window.filterArtifacts=function(q){
 };
 
 // ══════════════════════════════════
-// Agent Detail View
+// Agent Detail View — inline (replaces grid when open)
 // ══════════════════════════════════
 window.showAgentDetail=async function(agentId){
-  const overlay=document.getElementById('agent-detail-overlay');
-  if(!overlay)return;
-  overlay.dataset.loading='1';
-  overlay.style.display='flex';
-  overlay.innerHTML='<div class="agent-detail-panel" onclick="event.stopPropagation()"><div class="ad-loading">Loading agent...</div></div>';
+  const container=document.getElementById('agent-detail-inline');
+  const grid=document.getElementById('agents-grid');
+  if(!container)return;
+
+  grid.style.display='none';
+  container.style.display='block';
+  container.innerHTML='<div class="ad-loading">Loading agent...</div>';
 
   try{
     const res=await fetch(`/api/agents/${agentId}`);
     const a=await res.json();
-    if(a.error){overlay.style.display='none';return}
+    if(a.error){closeAgentDetail();return}
 
     const c=a.color||'#888';
     const modesHtml=(a.modes||[]).map((m,i)=>`
@@ -716,67 +718,64 @@ window.showAgentDetail=async function(agentId){
 
     const energyPct=a.state?Math.round((1-(a.state.progress||0))*100):100;
 
-    delete overlay.dataset.loading;
-    overlay.innerHTML=`
-      <div class="agent-detail-panel" onclick="event.stopPropagation()">
-        <div class="ad-header" style="border-color:${c}">
-          <div class="ad-avatar" style="background:${c}">${a.avatar||'?'}</div>
-          <div class="ad-info">
-            <div class="ad-name" style="color:${c}">${esc(a.name)}</div>
-            <div class="ad-title">${esc(a.title||'')} · inspired by ${esc(a.inspired_by||'')}</div>
-          </div>
-          <button class="ad-btn ad-btn-save" onclick="saveAgentChanges('${agentId}')">💾</button>
-          <button class="ad-btn ad-btn-apply" onclick="applyAgentChanges('${agentId}')">✓</button>
-          <button class="ad-close" onclick="closeAgentDetail()">✕</button>
+    container.innerHTML=`
+      <div class="ad-header" style="border-color:${c}">
+        <button class="ad-close" onclick="closeAgentDetail()">← Back</button>
+        <div class="ad-avatar" style="background:${c}">${a.avatar||'?'}</div>
+        <div class="ad-info">
+          <div class="ad-name" style="color:${c}">${esc(a.name)}</div>
+          <div class="ad-title">${esc(a.title||'')} · inspired by ${esc(a.inspired_by||'')}</div>
         </div>
+        <button class="ad-btn ad-btn-save" onclick="saveAgentChanges('${agentId}')">💾 Save</button>
+        <button class="ad-btn ad-btn-apply" onclick="applyAgentChanges('${agentId}')">✓ Apply</button>
+      </div>
 
-        <div class="ad-section">
-          <label class="ad-label">Personality Prompt</label>
-          <textarea class="ad-textarea" id="ad-personality" rows="4">${esc(a.personality||'')}</textarea>
+      <div class="ad-section">
+        <label class="ad-label">Personality Prompt</label>
+        <textarea class="ad-textarea" id="ad-personality" rows="4">${esc(a.personality||'')}</textarea>
+      </div>
+
+      <div class="ad-section">
+        <label class="ad-label">Discussion Prompt</label>
+        <textarea class="ad-textarea" id="ad-discussion" rows="4">${esc(a.discussionPrompt||'')}</textarea>
+      </div>
+
+      <div class="ad-section">
+        <label class="ad-label">Response Modes (${(a.modes||[]).length})</label>
+        <div class="ad-modes">${modesHtml}</div>
+      </div>
+
+      <div class="ad-section">
+        <label class="ad-label">Interests</label>
+        <div class="ad-interests">${(a.interests||[]).map(i=>`<span class="ad-tag">${esc(i)}</span>`).join('')}</div>
+      </div>
+
+      <div class="ad-section">
+        <label class="ad-label">Energy</label>
+        <div class="ad-energy">
+          <div class="energy-bar" style="width:100%"><div class="energy-fill" style="width:${energyPct}%;background:${c}"></div></div>
+          <span class="ad-energy-text">${energyPct}% · max:${a.energy_profile?.max||'?'} · regen:${a.energy_profile?.regen_rate||'?'}/tick · cost:${a.energy_profile?.write_cost||'?'}/msg</span>
         </div>
+      </div>
 
-        <div class="ad-section">
-          <label class="ad-label">Discussion Prompt</label>
-          <textarea class="ad-textarea" id="ad-discussion" rows="4">${esc(a.discussionPrompt||'')}</textarea>
+      ${a.state?`<div class="ad-section">
+        <label class="ad-label">State</label>
+        <div class="ad-state">
+          <span>Status: ${a.state.status||'idle'}</span> ·
+          <span>Messages: ${a.state.messages_sent||0}</span> ·
+          <span>Mood: ${a.state.mood||'—'}</span>
         </div>
-
-        <div class="ad-section">
-          <label class="ad-label">Response Modes (${(a.modes||[]).length})</label>
-          <div class="ad-modes">${modesHtml}</div>
-        </div>
-
-        <div class="ad-section">
-          <label class="ad-label">Interests</label>
-          <div class="ad-interests" id="ad-interests">${(a.interests||[]).map(i=>`<span class="ad-tag">${esc(i)}</span>`).join('')}</div>
-        </div>
-
-        <div class="ad-section">
-          <label class="ad-label">Energy</label>
-          <div class="ad-energy">
-            <div class="energy-bar" style="width:100%"><div class="energy-fill" style="width:${energyPct}%;background:${c}"></div></div>
-            <span class="ad-energy-text">${energyPct}% · max:${a.energy_profile?.max||'?'} · regen:${a.energy_profile?.regen_rate||'?'}/tick · cost:${a.energy_profile?.write_cost||'?'}/msg</span>
-          </div>
-        </div>
-
-        ${a.state?`<div class="ad-section">
-          <label class="ad-label">State</label>
-          <div class="ad-state">
-            <span>Status: ${a.state.status||'idle'}</span> ·
-            <span>Messages: ${a.state.messages_sent||0}</span> ·
-            <span>Mood: ${a.state.mood||'—'}</span>
-          </div>
-        </div>`:''}
-
-        </div>`;
+      </div>`:''}`;
   }catch(e){
-    overlay.innerHTML=`<div class="agent-detail-panel"><div class="ad-loading">Error: ${e.message}</div></div>`;
+    container.innerHTML=`<div class="ad-loading">Error: ${e.message}</div>`;
   }
 };
 
 window.closeAgentDetail=function(){
-  console.log('[DEBUG] closeAgentDetail called', new Error().stack);
-  const overlay=document.getElementById('agent-detail-overlay');
-  if(overlay)overlay.style.display='none';
+  const container=document.getElementById('agent-detail-inline');
+  const grid=document.getElementById('agents-grid');
+  if(container)container.style.display='none';
+  if(grid)grid.style.display='';
 };
 
 window.applyAgentChanges=async function(agentId){
