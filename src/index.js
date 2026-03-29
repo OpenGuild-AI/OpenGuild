@@ -13,6 +13,7 @@ import { generateDailySummaries } from './engine/diary.js';
 import { guildTick } from './engine/guild-chat.js';
 import { generateQuestsFromBrain } from './engine/quests.js';
 import { generateWorldHistoryQuest } from './engine/quests.js';
+import { pruneBrain } from './engine/brain-prune.js';
 import { runNextQuest } from './engine/quest-runner.js';
 import { runPendingValidations } from './engine/validation.js';
 import { closeBrowser } from './engine/browser.js';
@@ -121,6 +122,16 @@ async function boot() {
   });
   setTimeout(() => runPendingValidations().catch(err => console.error('[Validation]', err.message)), 60000);
   console.log('✓ Validation engine active');
+
+  // Brain self-curation — prune noise, merge dupes, decay stale data every 30min
+  cron.schedule('*/30 * * * *', async () => {
+    console.log('[Cron] Brain self-curation...');
+    try {
+      await pruneBrain();
+    } catch (err) { console.error('[Brain Prune]', err.message); }
+  });
+  setTimeout(() => pruneBrain().catch(err => console.error('[Brain Prune]', err.message)), 90000);
+  console.log('✓ Brain self-curation active (every 30min)');
 
   app.listen(PORT, '127.0.0.1', () => {
     console.log(`✓ Server running on http://127.0.0.1:${PORT}`);

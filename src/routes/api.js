@@ -409,6 +409,15 @@ router.post('/brain/backfill', async (req, res) => {
   res.json({ status: 'started' });
 });
 
+// Brain prune (manual trigger)
+import { pruneBrain } from '../engine/brain-prune.js';
+router.post('/brain/prune', async (req, res) => {
+  try {
+    const summary = await pruneBrain();
+    res.json(summary);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Brain artifacts
 router.get('/brain/artifacts', (req, res) => {
   const artifacts = getBrainArtifacts();
