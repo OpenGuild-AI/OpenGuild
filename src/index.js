@@ -76,17 +76,17 @@ async function boot() {
     await generateDailySummaries();
   });
 
-  // Brain quests every 10 minutes — 2 quests per cycle to keep brain growing
-  cron.schedule('*/10 * * * *', async () => {
-    console.log('[Cron] Generating brain quests...');
+  // Brain quest every 60 minutes — 1 research-driven quest per hour
+  cron.schedule('0 * * * *', async () => {
+    console.log('[Cron] Generating brain quest...');
     try {
       const quests = await generateQuestsFromBrain();
       console.log(`[Quests] Generated ${quests.length} new quests`);
     } catch (err) { console.error('[Quests] Error:', err.message); }
   });
 
-  // World History quest every 15 minutes — explore history, build connections
-  cron.schedule('*/15 * * * *', async () => {
+  // World History quest every 60 minutes — 1 history quest per hour
+  cron.schedule('30 * * * *', async () => {
     console.log('[Cron] Generating world history quest...');
     try {
       const quest = await generateWorldHistoryQuest();
@@ -94,7 +94,7 @@ async function boot() {
     } catch (err) { console.error('[Quests] History error:', err.message); }
   });
   setTimeout(() => generateWorldHistoryQuest().catch(err => console.error('[Quests]', err.message)), 45000);
-  console.log('✓ World History explorer active (every 15min)');
+  console.log('✓ Quest generators active (brain :00, history :30 — 1/hour each)');
 
   // Start discussion engine
   startDiscussionLoop();
