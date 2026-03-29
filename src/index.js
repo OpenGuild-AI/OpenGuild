@@ -35,6 +35,14 @@ app.use(express.static(join(__dirname, '..', 'public'), {
 // API routes
 app.use('/api', apiRouter);
 
+// Static pages
+app.get('/menu', (req, res) => {
+  res.sendFile(join(__dirname, '..', 'public', 'menu.html'));
+});
+app.get('/whitepaper', (req, res) => {
+  res.sendFile(join(__dirname, '..', 'public', 'whitepaper.html'));
+});
+
 // SPA fallback
 app.get('*', (req, res) => {
   res.sendFile(join(__dirname, '..', 'public', 'index.html'));
