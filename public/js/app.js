@@ -226,14 +226,13 @@ function connectSSE(){
 // AGENTS VIEW
 // ══════════════════════════════════
 async function loadAgents(){
+  if(agentDetailOpen)return;
   const res=await fetch('/api/archetypes');archetypes=await res.json();
   renderAgentsGrid();
 }
 
 function renderAgentsGrid(){
-  // Don't re-render if agent detail is open — it would kill the detail view
-  const detail=document.getElementById('agent-detail-inline');
-  if(detail&&detail.style.display==='block')return;
+  if(agentDetailOpen)return;
   const stateMap={};agentStates.forEach(s=>{stateMap[s.agent_id]=s});
   const active=agentStates.filter(s=>s.status==='active').length;
   const guild=agentStates.filter(s=>s.status==='guild').length;
@@ -695,11 +694,14 @@ window.filterArtifacts=function(q){
 // ══════════════════════════════════
 // Agent Detail View — inline (replaces grid when open)
 // ══════════════════════════════════
+let agentDetailOpen=false;
+
 window.showAgentDetail=async function(agentId){
   const container=document.getElementById('agent-detail-inline');
   const grid=document.getElementById('agents-grid');
   if(!container)return;
 
+  agentDetailOpen=true;
   grid.style.display='none';
   container.style.display='block';
   container.innerHTML='<div class="ad-loading">Loading agent...</div>';
@@ -775,6 +777,7 @@ window.showAgentDetail=async function(agentId){
 };
 
 window.closeAgentDetail=function(){
+  agentDetailOpen=false;
   const container=document.getElementById('agent-detail-inline');
   const grid=document.getElementById('agents-grid');
   if(container)container.style.display='none';
