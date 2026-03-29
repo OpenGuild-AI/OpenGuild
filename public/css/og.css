@@ -539,3 +539,12 @@ body::after{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;o
 @keyframes visitorPulse{0%,100%{opacity:1}50%{opacity:.4}}
 .sb-visitor-count{font-family:var(--mono);font-size:.65rem;color:var(--fg);font-weight:600}
 .sb-visitor-label{font-family:var(--mono);font-size:.55rem;color:var(--dim)}
+.sb-visitor-header{display:flex;align-items:center;gap:.4rem}
+.sb-visitor-log{margin-top:.3rem;max-height:120px;overflow-y:auto}
+.vl-entry{display:flex;align-items:center;gap:.3rem;font-family:var(--mono);font-size:.45rem;padding:.08rem 0;opacity:.6}
+.vl-icon{width:10px;text-align:center;flex-shrink:0}
+.vl-ip{color:var(--dim);flex:1}
+.vl-time{color:var(--dim);opacity:.5}
+.vl-connect .vl-icon{color:#48c878}
+.vl-disconnect .vl-icon{color:#c84848}
+.vl-connect .vl-ip{color:var(--fg)}

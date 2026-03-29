@@ -2,7 +2,7 @@ import express from 'express';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import db from '../db/database.js';
-import { addSSEClient, removeSSEClient, broadcast, getVisitorCount } from '../engine/discussion.js';
+import { addSSEClient, removeSSEClient, broadcast, getVisitorCount, getVisitorLog } from '../engine/discussion.js';
 import { getAllAgentStates } from '../engine/agent-state.js';
 import { archetypes } from '../agents/archetypes.js';
 import { getBrainGraph, getBrainStats, getEntityConnections, backfillBrain, getBrainArtifacts } from '../engine/brain.js';
@@ -57,10 +57,11 @@ router.get('/events', (req, res) => {
     res.flush?.();
   }, 15000);
 
-  addSSEClient(res);
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || '?';
+  addSSEClient(res, ip);
   req.on('close', () => {
     clearInterval(keepAlive);
-    removeSSEClient(res);
+    removeSSEClient(res, ip);
   });
 });
 
@@ -610,9 +611,9 @@ router.post('/skills/:id/toggle', (req, res) => {
   res.json({ ok: true });
 });
 
-// Live visitor count
+// Live visitor count + log
 router.get('/visitors', (req, res) => {
-  res.json({ count: getVisitorCount() });
+  res.json({ count: getVisitorCount(), log: getVisitorLog() });
 });
 
 export default router;

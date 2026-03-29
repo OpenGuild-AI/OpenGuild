@@ -216,7 +216,11 @@ function connectSSE(){
         case 'guild-chat':renderGuildMsg(payload);break;
         case 'guild-typing':renderGuildTyping(payload);break;
         case 'guild-typing-done':hideGuildTyping();break;
-        case 'visitors':{const el=document.getElementById('visitor-count');if(el)el.textContent=payload.count||0;break;}
+        case 'visitors':{
+          const el=document.getElementById('visitor-count');if(el)el.textContent=payload.count||0;
+          renderVisitorLog(payload.log||[]);
+          break;
+        }
       }
     }catch(err){console.error('[SSE]',err)}
   };
@@ -945,7 +949,17 @@ window.triggerValidation=async function(id){
 
 // Load archetypes for agent dots
 fetch('/api/archetypes').then(r=>r.json()).then(a=>{window._archetypes=a}).catch(()=>{});
-fetch('/api/visitors').then(r=>r.json()).then(d=>{const el=document.getElementById('visitor-count');if(el)el.textContent=d.count||0}).catch(()=>{});
+fetch('/api/visitors').then(r=>r.json()).then(d=>{const el=document.getElementById('visitor-count');if(el)el.textContent=d.count||0;renderVisitorLog(d.log||[])}).catch(()=>{});
+
+function renderVisitorLog(log){
+  const el=document.getElementById('visitor-log');
+  if(!el||!log.length)return;
+  el.innerHTML=log.slice(0,8).map(e=>{
+    const icon=e.action==='connect'?'→':'←';
+    const cls=e.action==='connect'?'vl-connect':'vl-disconnect';
+    return `<div class="vl-entry ${cls}"><span class="vl-icon">${icon}</span><span class="vl-ip">${esc(e.ip)}</span><span class="vl-time">${e.time}</span></div>`;
+  }).join('');
+}
 
 // ══════════════════════════════════
 // PREDICTIONS VIEW

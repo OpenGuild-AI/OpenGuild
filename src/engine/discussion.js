@@ -12,9 +12,34 @@ import { getEnabledSkills, executeSkill } from './skill-engine.js';
 
 // ── SSE ──────────────────────────────────────────────
 let sseClients = [];
-export function addSSEClient(res) { sseClients.push(res); broadcast('visitors', { count: sseClients.length }); }
-export function removeSSEClient(res) { sseClients = sseClients.filter(c => c !== res); setTimeout(() => broadcast('visitors', { count: sseClients.length }), 100); }
+let visitorLog = []; // last 20 connect/disconnect events
+const MAX_LOG = 20;
+
+function maskIP(ip) {
+  if (!ip || ip === '?') return '?.?.?.?';
+  const parts = ip.replace('::ffff:', '').split('.');
+  if (parts.length === 4) return `${parts[0]}.${parts[1]}.*.${parts[3]}`;
+  return ip.slice(0, Math.min(12, ip.length)) + '…';
+}
+
+function addLogEntry(ip, action) {
+  const time = new Date().toISOString().slice(11, 19);
+  visitorLog.unshift({ ip: maskIP(ip), action, time });
+  if (visitorLog.length > MAX_LOG) visitorLog.length = MAX_LOG;
+}
+
+export function addSSEClient(res, ip) {
+  sseClients.push(res);
+  addLogEntry(ip, 'connect');
+  broadcast('visitors', { count: sseClients.length, log: visitorLog });
+}
+export function removeSSEClient(res, ip) {
+  sseClients = sseClients.filter(c => c !== res);
+  addLogEntry(ip, 'disconnect');
+  setTimeout(() => broadcast('visitors', { count: sseClients.length, log: visitorLog }), 100);
+}
 export function getVisitorCount() { return sseClients.length; }
+export function getVisitorLog() { return visitorLog; }
 
 export function broadcast(type, data) {
   const envelope = JSON.stringify({ type, payload: data });
