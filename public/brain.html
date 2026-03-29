@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guild Brain — Knowledge Graph</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;400;600&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>
+:root{--bg:#0a0a0d;--bg2:#101018;--bg3:#181826;--text:#d4d0c8;--dim:#605c6e;--accent:#c8a44e;--accent2:#e8c86e;--border:#1e1e30;--mono:'DM Mono',monospace;--serif:'Crimson Pro',Georgia,serif}
+[data-theme="light"]{--bg:#f4f1eb;--bg2:#ebe8e1;--bg3:#e0ddd5;--bg4:#d5d2ca;--text:#1a1a1f;--text2:#2e2e36;--dim:#8a8698;--dim2:#a8a4b4;--accent:#9a7a2e;--accent2:#7a6020;--accent-dim:rgba(154,122,46,.08);--border:#d8d5cc;--border2:#ccc8be;--red:#c04040;--green:#3a9a48;--blue:#4070b8;--purple:#8840a8;--card-shadow:rgba(0,0,0,.06);--msg-divider:rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box}
+[data-theme="light"]{--bg:#f4f1eb;--bg2:#ebe8e1;--bg3:#e0ddd5;--bg4:#d5d2ca;--text:#1a1a1f;--text2:#2e2e36;--dim:#8a8698;--dim2:#a8a4b4;--accent:#9a7a2e;--accent2:#7a6020;--accent-dim:rgba(154,122,46,.08);--border:#d8d5cc;--border2:#ccc8be;--red:#c04040;--green:#3a9a48;--blue:#4070b8;--purple:#8840a8;--card-shadow:rgba(0,0,0,.06);--msg-divider:rgba(0,0,0,.04)}
+body{background:var(--bg);transition:background .3s,color .3s;color:var(--text);font-family:var(--serif);min-height:100vh;-webkit-font-smoothing:antialiased}
+nav{display:flex;align-items:center;gap:1rem;padding:.6rem 1.2rem;border-bottom:1px solid var(--border);background:var(--bg2)}
+nav h1{font-size:.9rem;font-weight:600}
+nav a{font-family:var(--mono);font-size:.6rem;color:var(--dim);text-decoration:none;transition:color .2s}
+nav a:hover{color:var(--accent)}
+nav .spacer{flex:1}
+
+.stats{display:flex;gap:1.5rem;padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:var(--bg2)}
+.stat{text-align:center}
+.stat-v{font-family:var(--mono);font-size:1.6rem;font-weight:600;color:var(--accent)}
+.stat-l{font-size:.6rem;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;font-family:var(--mono)}
+
+.container{display:flex;height:calc(100vh - 90px);overflow:hidden}
+.graph-area{flex:1;position:relative;overflow:hidden}
+canvas{width:100%;height:100%;display:block}
+.detail-panel{width:320px;border-left:1px solid var(--border);background:var(--bg2);overflow-y:auto;padding:1rem;display:none}
+.detail-panel.open{display:block}
+.detail-panel h2{font-size:.9rem;font-weight:600;margin-bottom:.3rem}
+.detail-panel .type{font-family:var(--mono);font-size:.55rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em}
+.detail-panel .desc{font-size:.8rem;color:var(--dim);margin:.4rem 0;font-weight:300}
+.detail-panel .section-label{font-family:var(--mono);font-size:.52rem;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin:.8rem 0 .3rem;border-bottom:1px solid var(--border);padding-bottom:.2rem}
+
+.conn-item{display:flex;align-items:center;gap:.4rem;padding:.3rem .4rem;border-radius:4px;margin-bottom:.2rem;font-size:.75rem}
+.conn-item:hover{background:var(--bg3);cursor:pointer}
+.conn-rel{font-family:var(--mono);font-size:.55rem;color:var(--dim);margin-left:auto}
+.conn-str{font-family:var(--mono);font-size:.5rem;color:var(--accent)}
+.news-item{padding:.3rem .4rem;border-radius:4px;margin-bottom:.2rem;font-size:.72rem;border-left:2px solid var(--accent)}
+.news-item:hover{background:var(--bg3)}
+.news-item a{color:var(--text);text-decoration:none}
+.news-item a:hover{text-decoration:underline}
+.news-src{font-family:var(--mono);font-size:.48rem;color:var(--dim)}
+
+.topics{padding:1rem 1.5rem;border-bottom:1px solid var(--border)}
+.topics-label{font-family:var(--mono);font-size:.55rem;color:var(--accent);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.5rem}
+.topic-pills{display:flex;flex-wrap:wrap;gap:.3rem}
+.topic-pill{font-family:var(--mono);font-size:.6rem;padding:.2rem .5rem;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text);cursor:pointer;transition:all .2s}
+.topic-pill:hover{border-color:var(--accent);color:var(--accent)}
+.topic-heat{font-size:.48rem;color:var(--accent);margin-left:.2rem}
+
+.search{padding:.5rem 1.5rem;border-bottom:1px solid var(--border)}
+.search input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.4rem .6rem;border-radius:5px;font-family:var(--mono);font-size:.72rem;outline:none}
+.search input:focus{border-color:var(--accent)}
+
+.type-badge{display:inline-block;font-family:var(--mono);font-size:.48rem;padding:.08rem .3rem;border-radius:3px;text-transform:uppercase;letter-spacing:.05em}
+.type-person{background:rgba(200,72,160,.15);color:#c848a0}
+.type-country{background:rgba(80,128,200,.15);color:#5080c8}
+.type-org{background:rgba(200,164,78,.15);color:#c8a44e}
+.type-technology{background:rgba(72,168,200,.15);color:#48a8c8}
+.type-event{background:rgba(200,80,80,.15);color:#c85050}
+.type-concept{background:rgba(120,200,72,.15);color:#78c848}
+.type-region{background:rgba(200,136,72,.15);color:#c88848}
+.type-policy{background:rgba(120,136,160,.15);color:#7888a0}
+</style>
+</head>
+<body>
+<nav>
+  <h1>🧠 Guild Brain</h1>
+  <span class="spacer"></span>
+  <a href="/">← Chat</a>
+  <a href="/archive.html">Archive</a>
+  <a href="/intelligence.html">Intel</a>
+  <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" style="background:none;border:1px solid var(--border,#1e1e30);border-radius:6px;padding:.25rem .45rem;cursor:pointer;font-size:.85rem;line-height:1;color:var(--dim,#605c6e)">🌙</button>
+</nav>
+<div class="stats" id="stats">Loading...</div>
+<div class="search"><input type="text" id="search" placeholder="Search entities..." oninput="onSearch(this.value)"></div>
+<div class="topics" id="topics-area"></div>
+<div class="container">
+  <div class="graph-area"><canvas id="canvas"></canvas></div>
+  <div class="detail-panel" id="detail"></div>
+</div>
+<script>
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+const detail=document.getElementById('detail');
+let nodes=[],edges=[],topics=[];
+let selectedNode=null;
+let drag=null,panX=0,panY=0,zoom=1;
+
+const TYPE_COLORS={person:'#c848a0',country:'#5080c8',org:'#c8a44e',technology:'#48a8c8',event:'#c85050',concept:'#78c848',region:'#c88848',policy:'#7888a0'};
+
+function resize(){canvas.width=canvas.parentElement.clientWidth;canvas.height=canvas.parentElement.clientHeight}
+window.addEventListener('resize',resize);resize();
+
+async function loadBrain(){
+  const res=await fetch('/api/brain');
+  const data=await res.json();
+
+  // Stats
+  document.getElementById('stats').innerHTML=`
+    <div class="stat"><div class="stat-v">${data.stats.entities}</div><div class="stat-l">Entities</div></div>
+    <div class="stat"><div class="stat-v">${data.stats.connections}</div><div class="stat-l">Connections</div></div>
+    <div class="stat"><div class="stat-v">${data.stats.topics}</div><div class="stat-l">Topics</div></div>
+  `;
+
+  // Topics
+  topics=data.topics||[];
+  const ta=document.getElementById('topics-area');
+  if(topics.length){
+    ta.innerHTML=`<div class="topics-label">Hot Topics</div><div class="topic-pills">${topics.slice(0,15).map(t=>`<span class="topic-pill" onclick="filterTopic('${esc(t.name)}')">${esc(t.name)}<span class="topic-heat">×${Math.round(t.heat)}</span></span>`).join('')}</div>`;
+  }else{ta.innerHTML=''}
+
+  // Build graph
+  nodes=data.entities.map((e,i)=>{
+    const angle=i/data.entities.length*Math.PI*2;
+    const r=150+Math.random()*100;
+    return{
+      id:e.id,name:e.name,type:e.type,mentions:e.mention_count,
+      x:canvas.width/2+Math.cos(angle)*r,
+      y:canvas.height/2+Math.sin(angle)*r,
+      vx:0,vy:0,
+      r:Math.max(4,Math.min(16,e.mention_count*2)),
+      color:TYPE_COLORS[e.type]||'#888'
+    };
+  });
+
+  edges=data.connections.map(c=>({
+    from:nodes.find(n=>n.name===c.from_name),
+    to:nodes.find(n=>n.name===c.to_name),
+    rel:c.relation,strength:c.strength
+  })).filter(e=>e.from&&e.to);
+
+  animate();
+}
+
+function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML}
+
+// Force-directed layout
+function simulate(){
+  const k=.01,repel=5000,damp=.92;
+  for(const n of nodes){n.vx*=damp;n.vy*=damp}
+  // Repulsion
+  for(let i=0;i<nodes.length;i++){
+    for(let j=i+1;j<nodes.length;j++){
+      let dx=nodes[j].x-nodes[i].x,dy=nodes[j].y-nodes[i].y;
+      const dist=Math.max(1,Math.sqrt(dx*dx+dy*dy));
+      const f=repel/(dist*dist);
+      dx/=dist;dy/=dist;
+      nodes[i].vx-=dx*f;nodes[i].vy-=dy*f;
+      nodes[j].vx+=dx*f;nodes[j].vy+=dy*f;
+    }
+  }
+  // Attraction along edges
+  for(const e of edges){
+    let dx=e.to.x-e.from.x,dy=e.to.y-e.from.y;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    const f=(dist-120)*k*e.strength;
+    dx/=dist;dy/=dist;
+    e.from.vx+=dx*f;e.from.vy+=dy*f;
+    e.to.vx-=dx*f;e.to.vy-=dy*f;
+  }
+  // Center gravity
+  const cx=canvas.width/2,cy=canvas.height/2;
+  for(const n of nodes){
+    n.vx+=(cx-n.x)*.0005;n.vy+=(cy-n.y)*.0005;
+    n.x+=n.vx;n.y+=n.vy;
+  }
+}
+
+function draw(){
+  ctx.fillStyle='#0a0a0d';ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.save();ctx.translate(panX,panY);ctx.scale(zoom,zoom);
+
+  // Edges
+  for(const e of edges){
+    ctx.beginPath();ctx.moveTo(e.from.x,e.from.y);ctx.lineTo(e.to.x,e.to.y);
+    ctx.strokeStyle=e.from.color+'30';ctx.lineWidth=Math.max(.5,e.strength*.8);ctx.stroke();
+    // Label
+    const mx=(e.from.x+e.to.x)/2,my=(e.from.y+e.to.y)/2;
+    ctx.fillStyle='#605c6e';ctx.font='9px DM Mono';ctx.textAlign='center';
+    ctx.fillText(e.rel,mx,my-3);
+  }
+
+  // Nodes
+  for(const n of nodes){
+    // Glow
+    const g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r*3);
+    g.addColorStop(0,n.color+'20');g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;ctx.fillRect(n.x-n.r*3,n.y-n.r*3,n.r*6,n.r*6);
+    // Circle
+    ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+    ctx.fillStyle=selectedNode===n?n.color:n.color+'cc';ctx.fill();
+    if(selectedNode===n){ctx.strokeStyle=n.color;ctx.lineWidth=2;ctx.stroke()}
+    // Label
+    ctx.fillStyle=n===selectedNode?'#fff':'#d4d0c8';
+    ctx.font=`${n===selectedNode?'600':'400'} ${Math.max(10,n.r)}px DM Mono`;
+    ctx.textAlign='center';ctx.fillText(n.name,n.x,n.y+n.r+12);
+  }
+  ctx.restore();
+}
+
+function animate(){simulate();draw();requestAnimationFrame(animate)}
+
+// Interaction
+canvas.addEventListener('click',e=>{
+  const rect=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left-panX)/zoom,my=(e.clientY-rect.top-panY)/zoom;
+  let hit=null;
+  for(const n of nodes){
+    const dx=n.x-mx,dy=n.y-my;
+    if(dx*dx+dy*dy<(n.r+8)*(n.r+8)){hit=n;break}
+  }
+  if(hit){selectedNode=hit;showDetail(hit.name)}
+  else{selectedNode=null;detail.classList.remove('open')}
+});
+
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();zoom*=e.deltaY>0?.9:1.1;zoom=Math.max(.3,Math.min(3,zoom));
+});
+
+let isPanning=false,panStart={x:0,y:0};
+canvas.addEventListener('mousedown',e=>{isPanning=true;panStart={x:e.clientX-panX,y:e.clientY-panY}});
+canvas.addEventListener('mousemove',e=>{if(isPanning){panX=e.clientX-panStart.x;panY=e.clientY-panStart.y}});
+canvas.addEventListener('mouseup',()=>isPanning=false);
+
+async function showDetail(name){
+  const res=await fetch('/api/brain/entity/'+encodeURIComponent(name));
+  if(!res.ok)return;
+  const data=await res.json();
+  const e=data.entity;
+  detail.classList.add('open');
+  detail.innerHTML=`
+    <h2>${esc(e.name)}</h2>
+    <span class="type-badge type-${e.type}">${e.type}</span>
+    <div class="desc">Mentioned ${e.mention_count}× · First: ${e.first_seen?.split('T')[0]||'—'}</div>
+    <div class="section-label">Connections (${data.connections.length})</div>
+    ${data.connections.map(c=>`<div class="conn-item" onclick="showDetail('${esc(c.connected_to)}')"><span class="type-badge type-${c.connected_type}">${c.connected_type?.slice(0,3)}</span> ${esc(c.connected_to)} <span class="conn-rel">${esc(c.relation)}</span> <span class="conn-str">×${c.strength}</span></div>`).join('')||'<div style="font-size:.7rem;color:var(--dim)">No connections yet.</div>'}
+    <div class="section-label">Related News (${data.news.length})</div>
+    ${data.news.map(n=>`<div class="news-item"><a href="${esc(n.link||'#')}" target="_blank">${esc(n.title)}</a><div class="news-src">${esc(n.feed_source)}</div></div>`).join('')||'<div style="font-size:.7rem;color:var(--dim)">No news linked yet.</div>'}
+  `;
+}
+
+function onSearch(q){
+  if(q.length<2)return;
+  fetch('/api/brain/search?q='+encodeURIComponent(q)).then(r=>r.json()).then(results=>{
+    if(results.length){
+      const hit=nodes.find(n=>n.name===results[0].name);
+      if(hit){selectedNode=hit;showDetail(hit.name);panX=canvas.width/2-hit.x*zoom;panY=canvas.height/2-hit.y*zoom}
+    }
+  });
+}
+
+function filterTopic(name){
+  const topic=topics.find(t=>t.name===name);
+  if(!topic)return;
+  // Highlight entities in this topic
+  const ids=(topic.entity_ids||'').split(',').map(Number).filter(Boolean);
+  nodes.forEach(n=>{n.r=ids.includes(n.id)?Math.max(12,n.r*1.5):Math.max(4,n.mentions*2)});
+}
+
+loadBrain();
+
+// Trigger backfill on first load
+fetch('/api/brain/backfill',{method:'POST'}).catch(()=>{});
+</script>
+<script>function toggleTheme(){var c=document.documentElement.getAttribute("data-theme"),n=c==="light"?"dark":"light";document.documentElement.setAttribute("data-theme",n);localStorage.setItem("og-theme",n);document.getElementById("theme-toggle").textContent=n==="light"?"☀️":"🌙"}(function(){var s=localStorage.getItem("og-theme");if(s){document.documentElement.setAttribute("data-theme",s);document.addEventListener("DOMContentLoaded",function(){var b=document.getElementById("theme-toggle");if(b)b.textContent=s==="light"?"☀️":"🌙"})}})()</script>
+</body>
+</html>

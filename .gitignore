@@ -1,0 +1,6 @@
+node_modules/
+*.db
+.env
+src/data/openguild.db-shm
+src/data/openguild.db-wal
+app.log

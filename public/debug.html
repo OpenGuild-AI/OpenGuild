@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head><title>SSE Debug</title></head>
+<body>
+<h1>SSE Debug</h1>
+<div id="status">Connecting...</div>
+<pre id="log" style="background:#111;color:#0f0;padding:1rem;height:80vh;overflow:auto;font-size:12px;"></pre>
+<script>
+const log = document.getElementById('log');
+const status = document.getElementById('status');
+
+function addLog(msg) {
+  const line = document.createElement('div');
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+const es = new EventSource('/api/events');
+
+es.onopen = () => {
+  status.textContent = 'CONNECTED ✅';
+  status.style.color = 'green';
+  addLog('SSE CONNECTED');
+};
+
+es.onmessage = (e) => {
+  addLog('onmessage fired! data length: ' + e.data.length);
+  try {
+    const parsed = JSON.parse(e.data);
+    addLog('  type: ' + parsed.type);
+    if (parsed.type === 'chat') {
+      addLog('  💬 CHAT from ' + parsed.payload.agent_name + ': ' + parsed.payload.content.slice(0, 80) + '...');
+    } else if (parsed.type === 'news') {
+      addLog('  📰 NEWS: ' + parsed.payload.title);
+    } else if (parsed.type === 'state') {
+      addLog('  🔄 STATE update (' + parsed.payload.length + ' agents)');
+    } else if (parsed.type === 'typing') {
+      addLog('  ⌨️ TYPING: ' + parsed.payload.agent_name);
+    } else if (parsed.type === 'journal') {
+      addLog('  📔 JOURNAL: ' + parsed.payload.agent_name);
+    }
+  } catch(err) {
+    addLog('  PARSE ERROR: ' + err.message);
+    addLog('  RAW: ' + e.data.slice(0, 200));
+  }
+};
+
+es.onerror = (e) => {
+  status.textContent = 'ERROR ❌ (readyState: ' + es.readyState + ')';
+  status.style.color = 'red';
+  addLog('SSE ERROR - readyState: ' + es.readyState);
+};
+
+addLog('EventSource created for /api/events');
+addLog('Browser: ' + navigator.userAgent);
+</script>
+</body>
+</html>

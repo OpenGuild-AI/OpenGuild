@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head><title>SSE Test</title></head>
+<body>
+<h1>SSE Test (simple counter)</h1>
+<div id="status">Connecting...</div>
+<pre id="log" style="background:#111;color:#0f0;padding:1rem;height:40vh;overflow:auto;font-size:14px;"></pre>
+
+<h2>Main Events Feed</h2>
+<pre id="log2" style="background:#111;color:#ff0;padding:1rem;height:40vh;overflow:auto;font-size:14px;"></pre>
+
+<script>
+function addLog(el, msg) {
+  const line = document.createElement('div');
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+// Test 1: Simple counter SSE
+const log1 = document.getElementById('log');
+const es1 = new EventSource('/api/test-sse');
+es1.onopen = () => addLog(log1, '✅ test-sse CONNECTED');
+es1.onmessage = (e) => addLog(log1, 'DATA: ' + e.data);
+es1.onerror = () => addLog(log1, '❌ test-sse ERROR readyState=' + es1.readyState);
+
+// Test 2: Main events feed
+const log2 = document.getElementById('log2');
+const es2 = new EventSource('/api/events');
+es2.onopen = () => addLog(log2, '✅ events CONNECTED');
+es2.onmessage = (e) => {
+  try {
+    const d = JSON.parse(e.data);
+    addLog(log2, d.type + ': ' + JSON.stringify(d.payload).slice(0, 120));
+  } catch(err) {
+    addLog(log2, 'RAW: ' + e.data.slice(0, 120));
+  }
+};
+es2.onerror = () => addLog(log2, '❌ events ERROR readyState=' + es2.readyState);
+</script>
+</body>
+</html>
