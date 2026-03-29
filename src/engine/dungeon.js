@@ -138,7 +138,7 @@ export async function dungeonTick() {
       { maxTokens: 25, temperature: 1.0 }
     );
     if (discuss?.text) postDungeonMsg(playerId, discuss.text, 'discuss');
-    await sleep(300);
+    await sleep(100);
   }
 
   // ── Phase 2: Actions — 1 sentence + dice ──
@@ -154,7 +154,7 @@ export async function dungeonTick() {
       { maxTokens: 30, temperature: 0.9 }
     );
     if (action?.text) postDungeonMsg(playerId, `${rollStr} — ${action.text}`, 'action');
-    await sleep(300);
+    await sleep(100);
   }
 
   // ── Phase 3: DM — 2-3 sentences, must include combat or exploration ──
