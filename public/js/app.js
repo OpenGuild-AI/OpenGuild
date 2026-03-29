@@ -1031,8 +1031,7 @@ async function loadDungeon(){
   const msgs=await msgRes.json();
   if(dungeonMsEl){
     dungeonMsEl.innerHTML='';
-    msgs.forEach(m=>renderDungeonMsg(m));
-    dungeonMsEl.scrollTop=dungeonMsEl.scrollHeight;
+    msgs.reverse().forEach(m=>renderDungeonMsg(m));
   }
 }
 
@@ -1047,8 +1046,7 @@ function renderDungeonMsg(msg){
   const div=document.createElement('div');
   div.className=`dl-entry dl-${msg.role||'player'}`;
   div.innerHTML=`<span class="dl-icon">${roleIcon}</span><span class="dl-name" style="color:${c}">${esc(msg.agent_name||msg.agent_id)}</span><span class="dl-text">${esc(msg.content.slice(0,120))}</span><span class="dl-time">${time}</span>`;
-  dungeonMsEl.appendChild(div);
-  dungeonMsEl.scrollTop=dungeonMsEl.scrollHeight;
+  dungeonMsEl.prepend(div);
 
   // DM narration goes to narrator box
   if(isDM){
