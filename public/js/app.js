@@ -723,6 +723,8 @@ window.showAgentDetail=async function(agentId){
             <div class="ad-name" style="color:${c}">${esc(a.name)}</div>
             <div class="ad-title">${esc(a.title||'')} · inspired by ${esc(a.inspired_by||'')}</div>
           </div>
+          <button class="ad-btn ad-btn-save" onclick="saveAgentChanges('${agentId}')">💾</button>
+          <button class="ad-btn ad-btn-apply" onclick="applyAgentChanges('${agentId}')">✓</button>
           <button class="ad-close" onclick="closeAgentDetail()">✕</button>
         </div>
 
@@ -763,11 +765,7 @@ window.showAgentDetail=async function(agentId){
           </div>
         </div>`:''}
 
-        <div class="ad-actions">
-          <button class="ad-btn ad-btn-save" onclick="saveAgentChanges('${agentId}')">💾 Save to disk</button>
-          <button class="ad-btn ad-btn-apply" onclick="applyAgentChanges('${agentId}')">Apply (runtime)</button>
-        </div>
-      </div>`;
+        </div>`;
   }catch(e){
     overlay.innerHTML=`<div class="agent-detail-panel"><div class="ad-loading">Error: ${e.message}</div></div>`;
   }
