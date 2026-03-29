@@ -53,64 +53,164 @@ export async function executeQuest(questId) {
   const leadArch = getArchetype(lead.agent_id);
   const supporters = agents.slice(1);
 
-  console.log(`[QuestRunner] Starting: "${quest.title}" (lead: ${leadArch?.name})`);
+  console.log(`[QuestRunner] Starting: "${quest.title}" (lead: ${leadArch?.name}, ${supporters.length} supporters)`);
 
   try {
     // Phase 1: Announce quest in guild chat
-    postGuildMsg(lead.agent_id, `I'm taking on a quest: "${quest.title}". Let me research this.`);
+    postGuildMsg(lead.agent_id, `I'm taking on a quest: "${quest.title}". Let me assemble the research.`);
     await sleep(2000);
 
-    // Phase 2: Generate search queries
-    const queryResult = await callKimi(
-      `You are ${leadArch?.name}, a researcher. Generate 3 focused web search queries to investigate this quest.
+    // Phase 2: Lead generates initial research plan
+    const planResult = await callKimi(
+      `You are ${leadArch?.name}, a lead researcher. Plan a thorough research approach for this quest.
+
 Quest: ${quest.title}
 Description: ${quest.description}
-Output only the 3 queries, one per line. No numbering, no explanations.`,
-      '', { maxTokens: 100, temperature: 0.7 }
+
+Generate:
+1. Five focused web search queries (different angles — general, specific entities, connections, timeline, counter-perspectives)
+2. Two Wikipedia topics to check
+3. One specific claim to fact-check
+
+Output format (strict, one per line):
+SEARCH: query here
+SEARCH: query here
+SEARCH: query here
+SEARCH: query here
+SEARCH: query here
+WIKI: topic name
+WIKI: topic name
+FACTCHECK: specific claim to verify`,
+      '', { maxTokens: 200, temperature: 0.7 }
     );
 
-    const queries = (queryResult?.text || '').split('\n').map(q => q.trim()).filter(Boolean).slice(0, 3);
-    if (!queries.length) queries.push(quest.title);
+    const planText = planResult?.text || '';
+    const searchQueries = (planText.match(/SEARCH:\s*(.+)/gi) || []).map(s => s.replace(/^SEARCH:\s*/i, '').trim()).filter(Boolean).slice(0, 5);
+    const wikiTopics = (planText.match(/WIKI:\s*(.+)/gi) || []).map(s => s.replace(/^WIKI:\s*/i, '').trim()).filter(Boolean).slice(0, 2);
+    const factClaims = (planText.match(/FACTCHECK:\s*(.+)/gi) || []).map(s => s.replace(/^FACTCHECK:\s*/i, '').trim()).filter(Boolean).slice(0, 1);
 
-    postGuildMsg(lead.agent_id, `Searching for: ${queries.map(q => `"${q}"`).join(', ')}`);
+    if (!searchQueries.length) searchQueries.push(quest.title);
+
+    postGuildMsg(lead.agent_id, `Research plan: ${searchQueries.length} searches, ${wikiTopics.length} Wikipedia dives, ${factClaims.length} fact-checks.`);
     await sleep(1500);
 
-    // Phase 3: Web search + fetch
+    // Phase 3: Round 1 — Lead agent does broad web search
     let allFindings = [];
-    for (const query of queries) {
+    let allSources = []; // track all URLs for dedup
+
+    postGuildMsg(lead.agent_id, `🔍 Starting web research...`);
+
+    for (const query of searchQueries) {
       const results = await webSearch(query);
       for (const r of results.slice(0, 2)) {
+        if (allSources.includes(r.url)) continue;
+        allSources.push(r.url);
         const content = await fetchPage(r.url);
         if (content.length > 200) {
-          allFindings.push({ title: r.title, url: r.url, content: content.slice(0, 3000) });
+          allFindings.push({ title: r.title, url: r.url, content: content.slice(0, 3000), agent: leadArch?.name, phase: 'search' });
         }
       }
-      await sleep(1000);
+      await sleep(800);
     }
 
+    postGuildMsg(lead.agent_id, `Found ${allFindings.length} sources from web search. Checking Wikipedia...`);
+    await sleep(1500);
+
+    // Phase 4: Wikipedia deep dives
+    for (const topic of wikiTopics) {
+      try {
+        const { fetchWikipedia } = await import('./tools.js');
+        const wikiContent = await fetchWikipedia(topic);
+        if (wikiContent.length > 200) {
+          const wikiUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(topic.replace(/ /g, '_'))}`;
+          allFindings.push({ title: `Wikipedia: ${topic}`, url: wikiUrl, content: wikiContent.slice(0, 4000), agent: leadArch?.name, phase: 'wiki' });
+          allSources.push(wikiUrl);
+        }
+      } catch (e) { console.error('[QuestRunner] Wiki error:', e.message); }
+      await sleep(500);
+    }
+
+    // Phase 5: Supporters do their own research rounds
+    for (const sup of supporters) {
+      const supArch = getArchetype(sup.agent_id);
+      if (!supArch) continue;
+
+      // Each supporter generates their own search angle based on what's been found so far
+      const existingTitles = allFindings.map(f => f.title).join(', ');
+      const angleResult = await callKimi(
+        `You are ${supArch.name} (${supArch.title}). ${supArch.personality}
+
+The quest is: "${quest.title}"
+Other researchers already found: ${existingTitles}
+
+Based on YOUR unique perspective, generate 2 web search queries that explore angles OTHERS MISSED.
+Output only the 2 queries, one per line. No numbering.`,
+        '', { maxTokens: 80, temperature: 0.85 }
+      );
+
+      const supQueries = (angleResult?.text || '').split('\n').map(q => q.trim()).filter(q => q.length > 5).slice(0, 2);
+      if (!supQueries.length) continue;
+
+      postGuildMsg(sup.agent_id, `🔍 Researching my angle: ${supQueries.map(q => `"${q}"`).join(', ')}`);
+      await sleep(1500);
+
+      for (const query of supQueries) {
+        const results = await webSearch(query);
+        for (const r of results.slice(0, 2)) {
+          if (allSources.includes(r.url)) continue;
+          allSources.push(r.url);
+          const content = await fetchPage(r.url);
+          if (content.length > 200) {
+            allFindings.push({ title: r.title, url: r.url, content: content.slice(0, 3000), agent: supArch.name, phase: 'supporter-search' });
+          }
+        }
+        await sleep(800);
+      }
+    }
+
+    postGuildMsg(lead.agent_id, `Total: ${allFindings.length} sources gathered from ${1 + supporters.length} researchers.`);
+    await sleep(1500);
+
+    // Phase 6: Fact-checking round
+    if (factClaims.length > 0) {
+      const checker = supporters[0] || lead;
+      const checkerArch = getArchetype(checker.agent_id);
+      
+      for (const claim of factClaims) {
+        try {
+          const { verifyFact } = await import('./tools.js');
+          postGuildMsg(checker.agent_id, `🔎 Fact-checking: "${claim.slice(0, 80)}..."`);
+          const verification = await verifyFact(claim, quest.title);
+          const emoji = verification.verified ? '✅' : '❌';
+          postGuildMsg(checker.agent_id, `${emoji} ${claim.slice(0, 60)}... → ${verification.verified ? 'VERIFIED' : 'UNVERIFIED'} (${verification.confidence}). ${verification.reasoning}`);
+          
+          // Add verification sources to findings
+          for (const src of verification.sources) {
+            if (!allSources.includes(src)) {
+              allSources.push(src);
+              allFindings.push({ title: `Fact-check source`, url: src, content: verification.reasoning, agent: checkerArch?.name, phase: 'fact-check' });
+            }
+          }
+        } catch (e) { console.error('[QuestRunner] Fact check error:', e.message); }
+        await sleep(2000);
+      }
+    }
+
+    // Phase 7: No sources fallback — use agent knowledge
     if (!allFindings.length) {
-      // Fallback: use Kimi's own knowledge as research source
-      postGuildMsg(lead.agent_id, `No web sources found. Using my own knowledge to research this.`);
+      postGuildMsg(lead.agent_id, `No web sources found. Using collective knowledge.`);
       await sleep(2000);
 
       const knowledgeResult = await callKimi(
-        `You are ${leadArch?.name}, a deep researcher. You couldn't find web sources, so use your training knowledge.
-
+        `You are ${leadArch?.name}, a deep researcher. Use your training knowledge.
 Quest: "${quest.title}"
 ${quest.description}
-
-Write a thorough research report based on what you know. Include:
-- Key facts and context
-- Important entities (people, orgs, places, concepts)
-- Known connections and relationships
-- What's still uncertain or debated
-
-Be factual and specific. 4-6 paragraphs.`,
+Write a thorough research report. Include key facts, entities, connections, uncertainties. 4-6 paragraphs.`,
         '', { maxTokens: 700, temperature: 0.7 }
       );
 
       if (knowledgeResult?.text) {
-        allFindings.push({ title: 'Agent Knowledge', url: 'internal', content: knowledgeResult.text });
+        allFindings.push({ title: 'Agent Knowledge', url: 'internal', content: knowledgeResult.text, agent: leadArch?.name, phase: 'knowledge' });
       } else {
         postGuildMsg(lead.agent_id, `Couldn't research this quest right now. Will retry later.`);
         db.prepare("UPDATE quests SET status = 'proposed' WHERE id = ?").run(questId);
@@ -119,97 +219,98 @@ Be factual and specific. 4-6 paragraphs.`,
       }
     }
 
-    postGuildMsg(lead.agent_id, `Found ${allFindings.length} sources. Analyzing...`);
-    await sleep(2000);
-
-    // Phase 4: Analysis — lead agent synthesizes findings
-    const sourceSummary = allFindings.map((f, i) => `SOURCE ${i+1}: ${f.title}\nURL: ${f.url}\n${f.content.slice(0, 1500)}`).join('\n\n---\n\n');
+    // Phase 8: Lead agent synthesizes ALL findings
+    const sourceSummary = allFindings.map((f, i) => `SOURCE ${i+1} [${f.agent}, ${f.phase}]: ${f.title}\nURL: ${f.url}\n${f.content.slice(0, 1500)}`).join('\n\n---\n\n');
 
     const analysisResult = await callKimi(
       `You are ${leadArch?.name} (${leadArch?.title}). ${leadArch?.personality}
 
-You researched the quest: "${quest.title}"
+You led a research team on: "${quest.title}"
 ${quest.description}
 
-Based on these sources, write your key findings and analysis. Be thorough but concise. Identify:
-- Key facts discovered
-- New entities (people, orgs, places, concepts) for the knowledge graph
-- New connections between entities
-- Gaps that remain
+Your team gathered ${allFindings.length} sources across web search, Wikipedia, and fact-checking.
 
-Write 3-5 paragraphs of analysis.`,
+Synthesize ALL findings into a comprehensive analysis:
+- Key facts discovered (cite source numbers [1], [2] etc.)
+- New entities for the knowledge graph
+- New connections between entities
+- What different team members found
+- Contradictions or gaps
+
+Write 4-6 paragraphs.`,
       sourceSummary,
-      { maxTokens: 600, temperature: 0.7 }
+      { maxTokens: 700, temperature: 0.7 }
     );
 
     const analysis = analysisResult?.text || '';
     if (!analysis) { isRunning = false; return; }
 
-    // Share excerpt in guild chat
     const excerpt = analysis.split('\n').filter(Boolean).slice(0, 2).join(' ').slice(0, 200);
     postGuildMsg(lead.agent_id, excerpt + '...');
     await sleep(2000);
 
-    // Phase 5: All guild agents add their perspectives
-    const perspectives = [analysis]; // collect all perspectives for final synthesis
+    // Phase 9: Each supporter adds their perspective on the synthesis
+    const perspectives = [analysis];
     for (const sup of supporters) {
       const supArch = getArchetype(sup.agent_id);
       if (!supArch) continue;
 
-      const prevMessages = perspectives.slice(-2).join('\n\n').slice(0, 600);
+      const prevMessages = perspectives.slice(-2).join('\n\n').slice(0, 800);
       
       const reactionResult = await callKimi(
         `You are ${supArch.name} (${supArch.title}). ${supArch.personality}
 
 Quest: "${quest.title}"
 
-Previous findings:
+The lead researcher's synthesis:
 ${prevMessages}
 
-Contribute YOUR unique perspective in 2-4 sentences. Based on your archetype:
-- What pattern or angle did others miss?
-- What connections do you see?
-- What would you investigate deeper?
+You also did your own research. Add YOUR unique perspective in 2-4 sentences:
+- What pattern or angle did the lead miss?
+- What connections do you see from your research?
+- What needs deeper investigation?
 
-Stay in character. Be specific, not generic.`,
-        '', { maxTokens: 150, temperature: 0.85 }
+Stay in character. Reference specific findings.`,
+        '', { maxTokens: 200, temperature: 0.85 }
       );
 
       if (reactionResult?.text) {
         postGuildMsg(sup.agent_id, reactionResult.text.trim());
         perspectives.push(reactionResult.text.trim());
-        await sleep(3000 + Math.random() * 2000);
+        await sleep(2000 + Math.random() * 2000);
       }
     }
 
-    // Phase 6: Generate the .md output file
+    // Phase 10: Generate the .md output file
     const mdResult = await callKimi(
-      `Create a structured knowledge file in Markdown format for the OpenGuild Brain.
+      `Create a structured knowledge file in Markdown for the OpenGuild Brain.
 
 Quest: "${quest.title}"
 ${quest.description}
 
-Analysis:
+Team analysis (${perspectives.length} researchers):
 ${perspectives.join('\n\n')}
 
-Sources:
-${allFindings.map(f => `- [${f.title}](${f.url})`).join('\n')}
+Sources (${allFindings.length} total):
+${allFindings.map(f => `- [${f.title}](${f.url}) [${f.agent}, ${f.phase}]`).join('\n')}
 
-Generate a .md file with these sections:
+Generate a comprehensive .md file:
 # [Quest Title]
 ## Summary
-(2-3 sentence overview)
+(3-4 sentence overview)
 ## Key Findings
-(bullet points of facts discovered)
+(detailed bullet points with source citations [1] [2])
 ## Entities
-(list: - **Name** (type) — brief description)
+(list: - **Name** (type) — description + significance)
 ## Connections
-(list: - Entity A → relationship → Entity B)
+(list: - Entity A → relationship → Entity B [source])
+## Contradictions & Debates
+(where sources disagree)
 ## Open Questions
-(what still needs investigation)
+(what needs further investigation)
 ## Sources
-(URLs used)`,
-      '', { maxTokens: 800, temperature: 0.5 }
+(numbered URLs with brief descriptions)`,
+      '', { maxTokens: 1000, temperature: 0.5 }
     );
 
     const mdContent = mdResult?.text || `# ${quest.title}\n\n${analysis}\n\n## Sources\n${allFindings.map(f => `- [${f.title}](${f.url})`).join('\n')}`;
