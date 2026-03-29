@@ -10,6 +10,7 @@ import { getGuildMessages, onUserGuildMessage } from '../engine/guild-chat.js';
 import { generateQuestsFromBrain, voteOnQuest } from '../engine/quests.js';
 import { getArtifactValidations, validateArtifact, scheduleValidation } from '../engine/validation.js';
 import { browse, searchDDGBrowser, searchGoogleBrowser } from '../engine/browser.js';
+import { readFile, writeFile, listDir, execCommand, fetchRSS, fetchJSON, analyzeText, diffCompare, queryBrain, memoryStore, memoryRecall } from '../engine/agent-tools.js';
 
 const router = express.Router();
 
@@ -517,4 +518,69 @@ router.post('/tools/search', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// Agent Tools API
+router.post('/tools/read', (req, res) => {
+  const { path } = req.body;
+  if (!path) return res.status(400).json({ error: 'Path required' });
+  res.json(readFile(path));
+});
+
+router.post('/tools/write', (req, res) => {
+  const { path, content } = req.body;
+  if (!path || content === undefined) return res.status(400).json({ error: 'Path and content required' });
+  res.json(writeFile(path, content));
+});
+
+router.post('/tools/ls', (req, res) => {
+  res.json(listDir(req.body.path || '.'));
+});
+
+router.post('/tools/exec', (req, res) => {
+  const { command } = req.body;
+  if (!command) return res.status(400).json({ error: 'Command required' });
+  res.json(execCommand(command));
+});
+
+router.post('/tools/rss', async (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).json({ error: 'URL required' });
+  res.json(await fetchRSS(url));
+});
+
+router.post('/tools/json', async (req, res) => {
+  const { url, headers } = req.body;
+  if (!url) return res.status(400).json({ error: 'URL required' });
+  res.json(await fetchJSON(url, headers || {}));
+});
+
+router.post('/tools/analyze', async (req, res) => {
+  const { text } = req.body;
+  if (!text) return res.status(400).json({ error: 'Text required' });
+  res.json(await analyzeText(text));
+});
+
+router.post('/tools/diff', (req, res) => {
+  const { a, b } = req.body;
+  if (!a || !b) return res.status(400).json({ error: 'Both texts (a, b) required' });
+  res.json(diffCompare(a, b));
+});
+
+router.post('/tools/brain', (req, res) => {
+  const { query, type } = req.body;
+  if (!query && type !== 'stats' && type !== 'topics') return res.status(400).json({ error: 'Query required' });
+  res.json(queryBrain(query || '', type || 'search'));
+});
+
+router.post('/tools/memory/store', (req, res) => {
+  const { agent_id, key, value } = req.body;
+  if (!agent_id || !key) return res.status(400).json({ error: 'agent_id and key required' });
+  res.json(memoryStore(agent_id, key, value));
+});
+
+router.post('/tools/memory/recall', (req, res) => {
+  const { agent_id, key } = req.body;
+  if (!agent_id) return res.status(400).json({ error: 'agent_id required' });
+  res.json(memoryRecall(agent_id, key || null));
 });
