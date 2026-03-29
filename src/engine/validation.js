@@ -188,16 +188,6 @@ REASON: one sentence explaining your vote (stay in character)`;
   db.prepare('UPDATE brain_artifacts SET validation_status = ? WHERE id = ?').run(finalStatus, artifactId);
   broadcast('artifact-status', { id: artifactId, status: finalStatus, approvals, rejections });
 
-  // Auto-delete rejected artifacts + their validations + .md file
-  if (finalStatus === 'rejected') {
-    const filepath = join(QUEST_DIR, artifact.filename);
-    try { unlinkSync(filepath); } catch (e) { /* file may not exist */ }
-    db.prepare('DELETE FROM artifact_validations WHERE artifact_id = ?').run(artifactId);
-    db.prepare('DELETE FROM brain_artifacts WHERE id = ?').run(artifactId);
-    console.log(`[Validation] Rejected artifact "${artifact.title}" deleted`);
-    broadcast('artifact-deleted', { id: artifactId, title: artifact.title });
-  }
-
   const statusEmoji = finalStatus === 'validated' ? '🟢' : finalStatus === 'rejected' ? '🔴' : '🟡';
   console.log(`[Validation] "${artifact.title}" → ${finalStatus} (${approvals} approve, ${rejections} reject, ${factsVerified}/${factsChecked} facts verified)`);
 
@@ -207,9 +197,21 @@ REASON: one sentence explaining your vote (stay in character)`;
     await ingestValidatedArtifact(content, artifact.title, factsVerified, factsChecked);
   }
 
-  // Phase 4b: Also ingest individual verified facts (even if artifact rejected)
+  // Phase 4b: Ingest individual verified facts — EVEN if artifact is rejected
+  // A rejected report can still contain true facts
   if (factsVerified > 0) {
+    console.log(`[Validation] Ingesting ${factsVerified} verified facts from "${artifact.title}" (status: ${finalStatus})`);
     await ingestVerifiedFacts(verifications.filter(v => v.verified), artifact.title);
+  }
+
+  // Phase 5: Auto-delete rejected artifacts AFTER extracting verified facts
+  if (finalStatus === 'rejected') {
+    const filepath = join(QUEST_DIR, artifact.filename);
+    try { unlinkSync(filepath); } catch (e) { /* file may not exist */ }
+    db.prepare('DELETE FROM artifact_validations WHERE artifact_id = ?').run(artifactId);
+    db.prepare('DELETE FROM brain_artifacts WHERE id = ?').run(artifactId);
+    console.log(`[Validation] Rejected artifact "${artifact.title}" deleted (${factsVerified} verified facts preserved in brain)`);
+    broadcast('artifact-deleted', { id: artifactId, title: artifact.title });
   }
 
   // Announce result
