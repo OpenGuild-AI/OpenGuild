@@ -248,7 +248,7 @@ function renderAgentsGrid(){
     const status=st.status||'idle',pct=Math.round((1-(st.progress||0))*100);
     const ec=pct>50?'var(--green)':pct>20?'var(--accent)':'var(--red)';
     const timeLabel=status==='resting'?'resting':status==='guild'?'guild':status==='active'?'world':'—';
-    return `<div class="agent-card"><div class="accent-bar" style="background:${c}"></div><div class="agent-top"><div class="agent-avatar" style="background:${c}">${i}</div><div class="agent-info"><div class="agent-name" style="color:${c}">${esc(a.name)}</div><div class="agent-title">${esc(a.title||'')}</div></div><div class="agent-status"><span class="status-dot ${status}"></span>${timeLabel}</div></div><div class="agent-desc">${esc((a.personality||'').slice(0,120))}</div><div class="agent-meta"><span>💬 ${st.messages_sent||0}</span><div class="energy-bar"><div class="energy-fill" style="width:${pct}%;background:${ec}"></div></div><span>${pct}%</span></div></div>`;
+    return `<div class="agent-card" onclick="showAgentDetail('${a.id}')"><div class="accent-bar" style="background:${c}"></div><div class="agent-top"><div class="agent-avatar" style="background:${c}">${i}</div><div class="agent-info"><div class="agent-name" style="color:${c}">${esc(a.name)}</div><div class="agent-title">${esc(a.title||'')}</div></div><div class="agent-status"><span class="status-dot ${status}"></span>${timeLabel}</div></div><div class="agent-desc">${esc((a.personality||'').slice(0,120))}</div><div class="agent-meta"><span>💬 ${st.messages_sent||0}</span><div class="energy-bar"><div class="energy-fill" style="width:${pct}%;background:${ec}"></div></div><span>${pct}%</span></div></div>`;
   }).join('');
 }
 
@@ -687,6 +687,130 @@ window.filterArtifacts=function(q){
   const cards=document.querySelectorAll('#ba-list .ba-card');
   const query=q.toLowerCase();
   cards.forEach(c=>{c.style.display=c.dataset.title.includes(query)?'':'none'});
+};
+
+// ══════════════════════════════════
+// Agent Detail View
+// ══════════════════════════════════
+window.showAgentDetail=async function(agentId){
+  const overlay=document.getElementById('agent-detail-overlay');
+  if(!overlay)return;
+  overlay.style.display='flex';
+  overlay.innerHTML='<div class="agent-detail-panel"><div class="ad-loading">Loading agent...</div></div>';
+
+  try{
+    const res=await fetch(`/api/agents/${agentId}`);
+    const a=await res.json();
+    if(a.error){overlay.style.display='none';return}
+
+    const c=a.color||'#888';
+    const modesHtml=(a.modes||[]).map((m,i)=>`
+      <div class="ad-mode">
+        <div class="ad-mode-header">
+          <span class="ad-mode-weight">w:${m.w}</span>
+          <span class="ad-mode-idx">Mode ${i+1}</span>
+        </div>
+        <textarea class="ad-mode-text" data-idx="${i}" rows="2">${esc(m.instruction||'')}</textarea>
+      </div>`).join('');
+
+    const energyPct=a.state?Math.round((1-(a.state.progress||0))*100):100;
+
+    overlay.innerHTML=`
+      <div class="agent-detail-panel">
+        <div class="ad-header" style="border-color:${c}">
+          <div class="ad-avatar" style="background:${c}">${a.avatar||'?'}</div>
+          <div class="ad-info">
+            <div class="ad-name" style="color:${c}">${esc(a.name)}</div>
+            <div class="ad-title">${esc(a.title||'')} · inspired by ${esc(a.inspired_by||'')}</div>
+          </div>
+          <button class="ad-close" onclick="closeAgentDetail()">✕</button>
+        </div>
+
+        <div class="ad-section">
+          <label class="ad-label">Personality Prompt</label>
+          <textarea class="ad-textarea" id="ad-personality" rows="4">${esc(a.personality||'')}</textarea>
+        </div>
+
+        <div class="ad-section">
+          <label class="ad-label">Discussion Prompt</label>
+          <textarea class="ad-textarea" id="ad-discussion" rows="4">${esc(a.discussionPrompt||'')}</textarea>
+        </div>
+
+        <div class="ad-section">
+          <label class="ad-label">Response Modes (${(a.modes||[]).length})</label>
+          <div class="ad-modes">${modesHtml}</div>
+        </div>
+
+        <div class="ad-section">
+          <label class="ad-label">Interests</label>
+          <div class="ad-interests" id="ad-interests">${(a.interests||[]).map(i=>`<span class="ad-tag">${esc(i)}</span>`).join('')}</div>
+        </div>
+
+        <div class="ad-section">
+          <label class="ad-label">Energy</label>
+          <div class="ad-energy">
+            <div class="energy-bar" style="width:100%"><div class="energy-fill" style="width:${energyPct}%;background:${c}"></div></div>
+            <span class="ad-energy-text">${energyPct}% · max:${a.energy_profile?.max||'?'} · regen:${a.energy_profile?.regen_rate||'?'}/tick · cost:${a.energy_profile?.write_cost||'?'}/msg</span>
+          </div>
+        </div>
+
+        ${a.state?`<div class="ad-section">
+          <label class="ad-label">State</label>
+          <div class="ad-state">
+            <span>Status: ${a.state.status||'idle'}</span> ·
+            <span>Messages: ${a.state.messages_sent||0}</span> ·
+            <span>Mood: ${a.state.mood||'—'}</span>
+          </div>
+        </div>`:''}
+
+        <div class="ad-actions">
+          <button class="ad-btn ad-btn-apply" onclick="applyAgentChanges('${agentId}')">Apply (runtime)</button>
+          <button class="ad-btn ad-btn-save" onclick="saveAgentChanges('${agentId}')">💾 Save to disk</button>
+        </div>
+      </div>`;
+  }catch(e){
+    overlay.innerHTML=`<div class="agent-detail-panel"><div class="ad-loading">Error: ${e.message}</div></div>`;
+  }
+};
+
+window.closeAgentDetail=function(){
+  const overlay=document.getElementById('agent-detail-overlay');
+  if(overlay)overlay.style.display='none';
+};
+
+window.applyAgentChanges=async function(agentId){
+  const personality=document.getElementById('ad-personality')?.value;
+  const discussion=document.getElementById('ad-discussion')?.value;
+  const modeEls=document.querySelectorAll('.ad-mode-text');
+  const modes=[];
+  modeEls.forEach(el=>{
+    const idx=parseInt(el.dataset.idx);
+    const w=parseInt(el.closest('.ad-mode')?.querySelector('.ad-mode-weight')?.textContent?.replace('w:','')||'10');
+    modes[idx]={w,instruction:el.value};
+  });
+
+  await fetch(`/api/agents/${agentId}`,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({personality,discussionPrompt:discussion,modes:modes.filter(Boolean)})
+  });
+  document.querySelector('.ad-btn-apply').textContent='✓ Applied';
+  setTimeout(()=>{document.querySelector('.ad-btn-apply').textContent='Apply (runtime)'},2000);
+};
+
+window.saveAgentChanges=async function(agentId){
+  const personality=document.getElementById('ad-personality')?.value;
+  const discussion=document.getElementById('ad-discussion')?.value;
+
+  const res=await fetch(`/api/agents/${agentId}/save`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({personality,discussionPrompt:discussion})
+  });
+  const data=await res.json();
+  const btn=document.querySelector('.ad-btn-save');
+  btn.textContent=data.ok?'✓ Saved to disk':'❌ Error';
+  setTimeout(()=>{btn.textContent='💾 Save to disk'},2000);
 };
 
 window.showArtifactDetail=async function(id){

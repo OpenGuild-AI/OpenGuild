@@ -226,6 +226,71 @@ router.get('/archetypes', (req, res) => {
   })));
 });
 
+// Agent detail — full config including prompts
+router.get('/agents/:id', (req, res) => {
+  const agent = archetypes.find(a => a.id === req.params.id);
+  if (!agent) return res.status(404).json({ error: 'Agent not found' });
+
+  const state = getAllAgentStates().find(s => s.agent_id === req.params.id);
+
+  res.json({
+    ...agent,
+    state: state || null,
+    modes: agent.modes || [],
+    personality: agent.personality || '',
+    discussionPrompt: agent.discussionPrompt || ''
+  });
+});
+
+// Update agent prompts (runtime only — persists until restart)
+router.put('/agents/:id', (req, res) => {
+  const agent = archetypes.find(a => a.id === req.params.id);
+  if (!agent) return res.status(404).json({ error: 'Agent not found' });
+
+  const { personality, discussionPrompt, modes, interests } = req.body;
+  if (personality !== undefined) agent.personality = personality;
+  if (discussionPrompt !== undefined) agent.discussionPrompt = discussionPrompt;
+  if (modes !== undefined && Array.isArray(modes)) agent.modes = modes;
+  if (interests !== undefined && Array.isArray(interests)) agent.interests = interests;
+
+  console.log(`[API] Agent ${agent.name} prompts updated`);
+  res.json({ ok: true, agent: { id: agent.id, name: agent.name } });
+});
+
+// Save agent prompts permanently to archetypes.js
+router.post('/agents/:id/save', async (req, res) => {
+  const { readFileSync, writeFileSync } = await import('fs');
+  const { join } = await import('path');
+  const filePath = join(process.cwd(), 'src/agents/archetypes.js');
+
+  try {
+    const agent = archetypes.find(a => a.id === req.params.id);
+    if (!agent) return res.status(404).json({ error: 'Agent not found' });
+
+    let source = readFileSync(filePath, 'utf8');
+    const { personality, discussionPrompt } = req.body;
+
+    // Replace personality prompt for this agent
+    if (personality !== undefined) {
+      const idPattern = new RegExp(`(id:\\s*'${agent.id}'[\\s\\S]*?personality:\\s*\`)([\\s\\S]*?)(\`)`);
+      source = source.replace(idPattern, `$1${personality.replace(/`/g, '\\`')}$3`);
+      agent.personality = personality;
+    }
+
+    if (discussionPrompt !== undefined) {
+      const idPattern = new RegExp(`(id:\\s*'${agent.id}'[\\s\\S]*?discussionPrompt:\\s*\`)([\\s\\S]*?)(\`)`);
+      source = source.replace(idPattern, `$1${discussionPrompt.replace(/`/g, '\\`')}$3`);
+      agent.discussionPrompt = discussionPrompt;
+    }
+
+    writeFileSync(filePath, source);
+    console.log(`[API] Agent ${agent.name} prompts saved to disk`);
+    res.json({ ok: true, saved: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get digests (news summaries + commentary)
 router.get('/digests', (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 20, 50);
