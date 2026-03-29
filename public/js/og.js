@@ -703,6 +703,7 @@ window.showAgentDetail=async function(agentId){
 
   agentDetailOpen=true;
   agentDetailAgentId=agentId;
+  grid.style.display='block';
   grid.innerHTML='<div class="ad-loading">Loading agent...</div>';
 
   try{
@@ -780,6 +781,8 @@ window.showAgentDetail=async function(agentId){
 window.closeAgentDetail=function(){
   agentDetailOpen=false;
   agentDetailAgentId=null;
+  const grid=document.getElementById('agents-grid');
+  if(grid)grid.style.display='';
   renderAgentsGrid();
 };
 
