@@ -9,6 +9,7 @@ import { generatePredictions } from '../engine/predictions.js';
 import { getGuildMessages, onUserGuildMessage } from '../engine/guild-chat.js';
 import { generateQuestsFromBrain, voteOnQuest } from '../engine/quests.js';
 import { getArtifactValidations, validateArtifact, scheduleValidation } from '../engine/validation.js';
+import { browse, searchDDGBrowser, searchGoogleBrowser } from '../engine/browser.js';
 
 const router = express.Router();
 
@@ -492,3 +493,28 @@ router.post('/skills/:id/toggle', (req, res) => {
 });
 
 export default router;
+
+// Browser tool endpoints
+router.post('/tools/browse', async (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).json({ error: 'URL required' });
+  try {
+    const result = await browse(url, { maxChars: 8000 });
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/tools/search', async (req, res) => {
+  const { query, engine } = req.body;
+  if (!query) return res.status(400).json({ error: 'Query required' });
+  try {
+    let results;
+    if (engine === 'google') results = await searchGoogleBrowser(query);
+    else results = await searchDDGBrowser(query);
+    res.json(results);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});

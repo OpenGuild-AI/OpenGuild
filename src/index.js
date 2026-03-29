@@ -14,6 +14,7 @@ import { guildTick } from './engine/guild-chat.js';
 import { generateQuestsFromBrain } from './engine/quests.js';
 import { runNextQuest } from './engine/quest-runner.js';
 import { runPendingValidations } from './engine/validation.js';
+import { closeBrowser } from './engine/browser.js';
 import { fetchAllFeeds } from './feeds/rss.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -119,3 +120,7 @@ boot().catch(err => {
   console.error('Boot failed:', err);
   process.exit(1);
 });
+
+// Cleanup on exit
+process.on('SIGTERM', async () => { await closeBrowser(); process.exit(0); });
+process.on('SIGINT', async () => { await closeBrowser(); process.exit(0); });

@@ -1,34 +1,47 @@
 // Shared Agent Tools — Web Search, Page Fetch, Fact Verification
-// No API keys needed — uses DuckDuckGo HTML + Wikipedia + direct page fetching
+// No API keys needed — uses DDG HTML POST + Wikipedia + Chromium browser fallback
 import { callKimi } from './kimi.js';
+import { browse, searchDDGBrowser, searchGoogleBrowser } from './browser.js';
 
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-// ── Web Search — cascading: DDG HTML POST → Wikipedia → fallback ──
+// ── Web Search — cascading: DDG HTML POST → Wikipedia → Chromium DDG → Chromium Google ──
 export async function webSearch(query, opts = {}) {
   const maxResults = opts.maxResults || 5;
   let results = [];
 
-  // Strategy 1: DuckDuckGo HTML (POST form — most reliable, no API key)
+  // Strategy 1: DuckDuckGo HTML POST (fast, no browser needed)
   results = await searchDDG(query, maxResults);
   if (results.length >= 2) {
-    console.log(`[Tools] DDG search: ${results.length} results for "${query}"`);
+    console.log(`[Tools] DDG HTML search: ${results.length} results for "${query}"`);
     return results;
   }
 
-  // Strategy 2: Wikipedia search API (always works, great for entities/facts)
+  // Strategy 2: Wikipedia search API (always works for entities/facts)
   const wikiResults = await searchWikipedia(query, maxResults);
   results = [...results, ...wikiResults];
   if (results.length >= 2) {
-    console.log(`[Tools] Wiki search: ${results.length} results for "${query}"`);
+    console.log(`[Tools] DDG+Wiki search: ${results.length} results for "${query}"`);
     return dedup(results).slice(0, maxResults);
   }
 
-  // Strategy 3: Direct known-source queries (news sites)
-  const directResults = await searchDirectSources(query);
-  results = [...results, ...directResults];
+  // Strategy 3: DuckDuckGo via Chromium (full JS rendering)
+  try {
+    const browserResults = await searchDDGBrowser(query, maxResults);
+    results = [...results, ...browserResults];
+    if (results.length >= 2) {
+      console.log(`[Tools] Browser DDG search: ${results.length} results for "${query}"`);
+      return dedup(results).slice(0, maxResults);
+    }
+  } catch (e) { console.error('[Tools] Browser DDG fallback error:', e.message); }
 
-  console.log(`[Tools] Combined search: ${results.length} results for "${query}"`);
+  // Strategy 4: Google via Chromium (last resort)
+  try {
+    const googleResults = await searchGoogleBrowser(query, maxResults);
+    results = [...results, ...googleResults];
+  } catch (e) { console.error('[Tools] Browser Google fallback error:', e.message); }
+
+  console.log(`[Tools] Full cascade search: ${results.length} results for "${query}"`);
   return dedup(results).slice(0, maxResults);
 }
 
@@ -97,27 +110,6 @@ async function searchWikipedia(query, max = 3) {
   }
 }
 
-// Direct source search — query known reliable news/reference sites
-async function searchDirectSources(query) {
-  const sources = [
-    { site: 'reuters.com', name: 'Reuters' },
-    { site: 'apnews.com', name: 'AP News' },
-    { site: 'bbc.com', name: 'BBC' }
-  ];
-
-  const results = [];
-  // Use DDG with site: operator for each source
-  for (const src of sources) {
-    if (results.length >= 3) break;
-    try {
-      const siteResults = await searchDDG(`${query} site:${src.site}`, 2);
-      results.push(...siteResults);
-    } catch (e) { /* skip */ }
-    await sleep(500); // be nice
-  }
-  return results;
-}
-
 // Dedup by URL
 function dedup(results) {
   const seen = new Set();
@@ -130,50 +122,63 @@ function dedup(results) {
 }
 
 // ── Fetch and extract text from URL ──
-export async function fetchPage(url) {
-  try {
-    const res = await fetch(url, {
-      headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml' },
-      signal: AbortSignal.timeout(12000),
-      redirect: 'follow'
-    });
-    if (!res.ok) return '';
-    const html = await res.text();
+// Tries fast HTTP fetch first, falls back to Chromium for JS-heavy sites
+export async function fetchPage(url, opts = {}) {
+  const useBrowser = opts.useBrowser || false;
 
-    // Smart extraction: try to get main content
-    let text = html;
+  // Fast path: direct HTTP fetch
+  if (!useBrowser) {
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml' },
+        signal: AbortSignal.timeout(12000),
+        redirect: 'follow'
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const html = await res.text();
 
-    // Remove noise
-    text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-    text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
-    text = text.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '');
-    text = text.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '');
-    text = text.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '');
-    text = text.replace(/<!--[\s\S]*?-->/g, '');
-
-    // Try to extract article body first
-    const articleMatch = text.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
-    const mainMatch = text.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
-
-    const content = articleMatch?.[1] || mainMatch?.[1] || text;
-
-    // Strip remaining tags
-    const clean = content
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#x27;/g, "'")
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    return clean.slice(0, 8000);
-  } catch (e) {
-    console.error('[Tools] fetchPage error:', e.message);
-    return '';
+      const clean = extractText(html);
+      // If we got very little content, it might be a JS-rendered page
+      if (clean.length > 200) return clean;
+    } catch (e) {
+      // Fall through to browser
+    }
   }
+
+  // Slow path: Chromium rendering (handles JS-heavy sites, paywalls, SPAs)
+  try {
+    const result = await browse(url, { maxChars: 8000 });
+    if (result.success && result.content.length > 100) {
+      return result.content;
+    }
+  } catch (e) {
+    console.error('[Tools] Browser fetchPage error:', e.message);
+  }
+
+  return '';
+}
+
+// Extract text from HTML string
+function extractText(html) {
+  let text = html;
+  text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  text = text.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '');
+  text = text.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '');
+  text = text.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '');
+  text = text.replace(/<!--[\s\S]*?-->/g, '');
+
+  const articleMatch = text.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
+  const mainMatch = text.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
+  const content = articleMatch?.[1] || mainMatch?.[1] || text;
+
+  return content
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#x27;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 8000);
 }
 
 // ── Get Wikipedia article content (clean, structured) ──
