@@ -250,7 +250,7 @@ function renderAgentsGrid(){
     const status=st.status||'idle',pct=Math.round((1-(st.progress||0))*100);
     const ec=pct>50?'var(--green)':pct>20?'var(--accent)':'var(--red)';
     const timeLabel=status==='resting'?'resting':status==='guild'?'guild':status==='active'?'world':'—';
-    return `<div class="agent-card" onclick="event.stopPropagation();showAgentDetail('${a.id}')"><div class="accent-bar" style="background:${c}"></div><div class="agent-top"><div class="agent-avatar" style="background:${c}">${i}</div><div class="agent-info"><div class="agent-name" style="color:${c}">${esc(a.name)}</div><div class="agent-title">${esc(a.title||'')}</div></div><div class="agent-status"><span class="status-dot ${status}"></span>${timeLabel}</div></div><div class="agent-desc">${esc((a.personality||'').slice(0,120))}</div><div class="agent-meta"><span>💬 ${st.messages_sent||0}</span><div class="energy-bar"><div class="energy-fill" style="width:${pct}%;background:${ec}"></div></div><span>${pct}%</span></div></div>`;
+    return `<div class="agent-card" ontouchend="event.preventDefault();event.stopPropagation();showAgentDetail('${a.id}')" onclick="event.stopPropagation();showAgentDetail('${a.id}')"><div class="accent-bar" style="background:${c}"></div><div class="agent-top"><div class="agent-avatar" style="background:${c}">${i}</div><div class="agent-info"><div class="agent-name" style="color:${c}">${esc(a.name)}</div><div class="agent-title">${esc(a.title||'')}</div></div><div class="agent-status"><span class="status-dot ${status}"></span>${timeLabel}</div></div><div class="agent-desc">${esc((a.personality||'').slice(0,120))}</div><div class="agent-meta"><span>💬 ${st.messages_sent||0}</span><div class="energy-bar"><div class="energy-fill" style="width:${pct}%;background:${ec}"></div></div><span>${pct}%</span></div></div>`;
   }).join('');
 }
 
@@ -698,6 +698,7 @@ let agentDetailOpen=false;
 let agentDetailAgentId=null;
 
 window.showAgentDetail=async function(agentId){
+  if(agentDetailOpen)return; // prevent double-fire from touch+click
   const grid=document.getElementById('agents-grid');
   if(!grid)return;
 
