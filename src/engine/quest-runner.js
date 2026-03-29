@@ -260,101 +260,99 @@ Stay in character. 3-4 paragraphs.`,
     }
 
     // ══════════════════════════════════════════
-    // PHASE 5: Collaborative .md writing — ALL agents contribute
+    // PHASE 5: Final synthesis — ALL findings merged into one comprehensive .md
     // ══════════════════════════════════════════
-    postGuildMsg(leader.agent_id, `📝 All ${agentAnalyses.length} analyses in. Let's write the report together.`);
-    await sleep(1500);
 
-    // Each agent writes a section of the .md
-    const mdSections = [];
-
-    // Agent 1: Summary + Key Findings
-    const writer1 = agentAnalyses[0];
-    const section1Result = await callKimi(
-      `You are ${writer1.agent}. Write these sections for a collaborative research report on "${quest.title}":
-
-# ${quest.title}
-
-## Summary
-(3-4 sentence overview based on ALL team findings below)
-
-## Key Findings
-(bullet points — combine findings from all researchers, cite sources)
-
-TEAM FINDINGS:
-${agentAnalyses.map(a => `### ${a.agent}'s Research:\n${a.analysis}`).join('\n\n')}
-
-Write in Markdown. Be thorough and specific.`,
-      '', { maxTokens: 500, temperature: 0.5 }
-    );
-    if (section1Result?.text) {
-      mdSections.push(section1Result.text);
-      postGuildMsg(writer1.agentId, `✍️ Wrote: Summary + Key Findings`);
-    }
-    await sleep(1500);
-
-    // Agent 2: Entities + Connections
-    const writer2 = agentAnalyses[1] || agentAnalyses[0];
-    const section2Result = await callKimi(
-      `You are ${writer2.agent}. Write these sections for the research report on "${quest.title}":
-
-## Entities
-(list all entities discovered by the team: - **Name** (type) — description)
-
-## Connections
-(list relationships: - Entity A → relationship → Entity B)
-
-TEAM FINDINGS:
-${agentAnalyses.map(a => `### ${a.agent}:\n${a.analysis}`).join('\n\n')}
-
-Extract ALL entities and connections mentioned. Be comprehensive. Markdown format.`,
-      '', { maxTokens: 400, temperature: 0.5 }
-    );
-    if (section2Result?.text) {
-      mdSections.push(section2Result.text);
-      postGuildMsg(writer2.agentId, `✍️ Wrote: Entities + Connections`);
-    }
-    await sleep(1500);
-
-    // Agent 3 (or 1): Contradictions + Open Questions
-    const writer3 = agentAnalyses[2] || agentAnalyses[0];
-    const section3Result = await callKimi(
-      `You are ${writer3.agent}. Write these sections for the research report on "${quest.title}":
-
-## Contradictions & Debates
-(where sources or researchers disagree)
-
-## Open Questions
-(what still needs investigation — be specific)
-
-TEAM FINDINGS:
-${agentAnalyses.map(a => `### ${a.agent}:\n${a.analysis}`).join('\n\n')}
-
-Be honest about gaps and disagreements. Markdown format.`,
-      '', { maxTokens: 300, temperature: 0.6 }
-    );
-    if (section3Result?.text) {
-      mdSections.push(section3Result.text);
-      postGuildMsg(writer3.agentId, `✍️ Wrote: Contradictions + Open Questions`);
-    }
-    await sleep(1000);
-
-    // Sources section — all sources from all agents
+    // Collect all sources from all agents
     const allSourcesList = [];
     const seenUrls = new Set();
     for (const plan of agentPlans) {
       for (const src of plan.sources) {
         if (!seenUrls.has(src.url)) {
           seenUrls.add(src.url);
-          allSourcesList.push(src);
+          allSourcesList.push({ ...src, agent: plan.member.arch.name });
         }
       }
     }
-    const sourcesSection = `\n## Sources\n${allSourcesList.map((s, i) => `${i + 1}. [${s.title}](${s.url})`).join('\n')}\n\n## Contributors\n${agentAnalyses.map(a => `- **${a.agent}**`).join('\n')}`;
-    mdSections.push(sourcesSection);
 
-    // Assemble final .md
-    const mdContent = mdSections.join('\n\n');
+    postGuildMsg(leader.agent_id, `📝 All ${agentAnalyses.length} researchers done. Synthesizing ${allSourcesList.length} sources into final report...`);
+    await sleep(1500);
+
+    // Build the complete context: all analyses + all sources + all fact-checks
+    const fullContext = agentAnalyses.map(a =>
+      `=== ${a.agent}'s Research ===\n${a.analysis}\nSources used: ${a.sources.map(s => s.title).join(', ') || 'own knowledge'}`
+    ).join('\n\n');
+
+    const sourceIndex = allSourcesList.map((s, i) => `[${i + 1}] ${s.title} (${s.url}) — found by ${s.agent}`).join('\n');
+
+    // One comprehensive synthesis call
+    const synthesisResult = await callKimi(
+      `You are the OpenGuild research team editor. ${agentAnalyses.length} researchers investigated "${quest.title}".
+
+Synthesize ALL their findings into ONE comprehensive, authoritative research document.
+
+RESEARCHER FINDINGS:
+${fullContext}
+
+SOURCE INDEX:
+${sourceIndex}
+
+Write a complete Markdown document with these sections:
+
+# ${quest.title}
+
+## Summary
+3-4 sentences. What did the team discover? What's the key insight?
+
+## Key Findings
+Detailed bullet points merging ALL researchers' discoveries. Cite sources as [1], [2], etc.
+Group related findings. Note which researcher discovered what.
+
+## Entities
+Every person, organization, country, concept, technology discovered:
+- **Name** (type) — description and significance. Discovered by: [researcher]
+
+## Connections
+All relationships between entities:
+- Entity A → relationship → Entity B [source]
+
+## Contradictions & Debates
+Where researchers disagreed. Where sources conflict. Be specific.
+
+## Open Questions
+What still needs investigation? What couldn't be verified?
+
+## Methodology
+Brief description: how many agents researched, what tools they used, how many sources total.
+
+## Sources
+Numbered list of all ${allSourcesList.length} sources with URLs.
+
+## Contributors
+Which agent researched what angle.
+
+Be thorough. Every finding from every researcher must appear. This is the definitive document.`,
+      '', { maxTokens: 2000, temperature: 0.4 }
+    );
+
+    let mdContent = synthesisResult?.text || '';
+
+    // Fallback if synthesis failed
+    if (!mdContent || mdContent.length < 200) {
+      mdContent = `# ${quest.title}\n\n## Summary\nResearch by ${teamNames}.\n\n`;
+      mdContent += agentAnalyses.map(a => `## ${a.agent}'s Analysis\n${a.analysis}`).join('\n\n');
+      mdContent += `\n\n## Sources\n${allSourcesList.map((s, i) => `${i + 1}. [${s.title}](${s.url})`).join('\n')}`;
+    }
+
+    // Ensure sources + contributors are always at the end
+    if (!mdContent.includes('## Sources')) {
+      mdContent += `\n\n## Sources\n${allSourcesList.map((s, i) => `${i + 1}. [${s.title}](${s.url}) — ${s.agent}`).join('\n')}`;
+    }
+    if (!mdContent.includes('## Contributors')) {
+      mdContent += `\n\n## Contributors\n${agentAnalyses.map(a => `- **${a.agent}**`).join('\n')}`;
+    }
+
+    postGuildMsg(leader.agent_id, `✍️ Final report synthesized: ${mdContent.length} chars from ${agentAnalyses.length} researchers.`);
 
     // Save .md file
     const filename = quest.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60) + '.md';
