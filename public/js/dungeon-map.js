@@ -12,7 +12,7 @@ const T = {
 };
 
 const TILE_COLORS = {
-  [T.FLOOR]: '#2a2520', [T.WALL]: '#1a1815', [T.DOOR]: '#8B6914',
+  [T.FLOOR]: '#2a2520', [T.WALL]: '#1e1b18', [T.DOOR]: '#8B6914',
   [T.CHEST]: '#DAA520', [T.STAIRS]: '#4a4540', [T.WATER]: '#1a3a5c',
   [T.LAVA]: '#8B2500', [T.TRAP]: '#3a2020'
 };
@@ -186,16 +186,18 @@ function drawTile(x, y, type) {
   dungeonCtx.fillStyle = TILE_COLORS[type] || TILE_COLORS[T.FLOOR];
   dungeonCtx.fillRect(px, py, TILE, TILE);
 
-  // Grid lines (subtle)
-  if (type !== T.WALL) {
-    dungeonCtx.strokeStyle = 'rgba(255,255,255,0.03)';
-    dungeonCtx.strokeRect(px, py, TILE, TILE);
-  }
+  // Grid lines on all tiles
+  dungeonCtx.strokeStyle = 'rgba(255,255,255,0.04)';
+  dungeonCtx.strokeRect(px, py, TILE, TILE);
 
-  // Wall texture
+  // Wall texture — brick pattern
   if (type === T.WALL) {
-    dungeonCtx.fillStyle = 'rgba(255,255,255,0.02)';
-    dungeonCtx.fillRect(px + 2, py + 2, TILE - 4, TILE - 4);
+    dungeonCtx.fillStyle = 'rgba(255,255,255,0.04)';
+    dungeonCtx.fillRect(px + 1, py + 1, TILE/2 - 1, TILE/2 - 1);
+    dungeonCtx.fillRect(px + TILE/2 + 1, py + TILE/2 + 1, TILE/2 - 2, TILE/2 - 2);
+    dungeonCtx.fillStyle = 'rgba(0,0,0,0.15)';
+    dungeonCtx.fillRect(px, py + TILE/2 - 0.5, TILE, 1);
+    dungeonCtx.fillRect(px + TILE/2 - 0.5, py, 1, TILE);
   }
 
   // Special tile icons
@@ -333,7 +335,7 @@ function renderDungeonMap() {
   if (!dungeonCtx || !dungeonMap) return;
   
   // Clear
-  dungeonCtx.fillStyle = '#0a0908';
+  dungeonCtx.fillStyle = TILE_COLORS[T.WALL];
   dungeonCtx.fillRect(0, 0, dungeonCanvas.width, dungeonCanvas.height);
 
   // Draw tiles
@@ -705,7 +707,7 @@ const _origRenderDungeonMap = renderDungeonMap;
 renderDungeonMap = function() {
   if (!dungeonCtx || !dungeonMap) return;
   
-  dungeonCtx.fillStyle = '#0a0908';
+  dungeonCtx.fillStyle = TILE_COLORS[T.WALL];
   dungeonCtx.fillRect(0, 0, dungeonCanvas.width, dungeonCanvas.height);
 
   for (let y = 0; y < MAP_H; y++)
