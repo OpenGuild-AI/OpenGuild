@@ -858,7 +858,7 @@ let allQuests=[];
 async function loadQuests(){
   try{
     const res=await fetch('/api/quests');allQuests=await res.json();
-    renderQuests('all');
+    renderQuests('proposed');
   }catch(e){document.getElementById('quests-list').innerHTML='<div class="empty-state">Failed to load quests.</div>'}
 }
 window.filterQuests=function(filter){
