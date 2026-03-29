@@ -1056,8 +1056,27 @@ function renderDungeonMsg(msg){
     if(narrator)narrator.textContent=msg.content;
   }
 
-  // Trigger map animation
-  if(window.handleDungeonAction) window.handleDungeonAction(msg);
+  // Trigger map animation + update HP bars
+  if(window.handleDungeonAction) {
+    window.handleDungeonAction(msg);
+    // Update HP/mana bars from token state
+    setTimeout(() => {
+      const tokens = typeof window.dungeonTokens === 'function' ? window.dungeonTokens() : [];
+      tokens.forEach(t => {
+        if (t.isDM) return;
+        const bars = document.querySelectorAll(`.ds-player`);
+        bars.forEach(bar => {
+          const nameEl = bar.querySelector('.ds-name');
+          if (nameEl && nameEl.textContent === t.name) {
+            const hpBar = bar.querySelector('.ds-hp');
+            const mpBar = bar.querySelector('.ds-mp');
+            if (hpBar) hpBar.style.width = (t.hp / t.maxHp * 100) + '%';
+            if (mpBar) mpBar.style.width = (t.mana / t.maxMana * 100) + '%';
+          }
+        });
+      });
+    }, 500);
+  }
 }
 
 // GUILD CHAT

@@ -293,7 +293,18 @@ function drawToken(token) {
     dungeonCtx.fillStyle = 'rgba(30,28,25,0.92)';
     dungeonCtx.beginPath();
     const bx = bubbleX - bw/2, by = bubbleY - totalH;
-    dungeonCtx.roundRect(bx, by, bw, totalH, 4);
+    const br = 4;
+    // roundRect polyfill
+    dungeonCtx.moveTo(bx + br, by);
+    dungeonCtx.lineTo(bx + bw - br, by);
+    dungeonCtx.quadraticCurveTo(bx + bw, by, bx + bw, by + br);
+    dungeonCtx.lineTo(bx + bw, by + totalH - br);
+    dungeonCtx.quadraticCurveTo(bx + bw, by + totalH, bx + bw - br, by + totalH);
+    dungeonCtx.lineTo(bx + br, by + totalH);
+    dungeonCtx.quadraticCurveTo(bx, by + totalH, bx, by + totalH - br);
+    dungeonCtx.lineTo(bx, by + br);
+    dungeonCtx.quadraticCurveTo(bx, by, bx + br, by);
+    dungeonCtx.closePath();
     dungeonCtx.fill();
     dungeonCtx.strokeStyle = token.color + '80';
     dungeonCtx.lineWidth = 1;
