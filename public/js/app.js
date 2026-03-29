@@ -764,8 +764,8 @@ window.showAgentDetail=async function(agentId){
         </div>`:''}
 
         <div class="ad-actions">
-          <button class="ad-btn ad-btn-apply" onclick="applyAgentChanges('${agentId}')">Apply (runtime)</button>
           <button class="ad-btn ad-btn-save" onclick="saveAgentChanges('${agentId}')">💾 Save to disk</button>
+          <button class="ad-btn ad-btn-apply" onclick="applyAgentChanges('${agentId}')">Apply (runtime)</button>
         </div>
       </div>`;
   }catch(e){
