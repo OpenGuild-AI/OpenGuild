@@ -69,7 +69,7 @@ window.switchView=function(view){
   // Lazy load view data
   if(!viewsLoaded[view]){loadView(view);viewsLoaded[view]=true}
   // Resize brain canvas when switching to it
-  if(view==='brain'&&brainCanvas)setTimeout(brainResize,50);
+  if(view==='brain'&&brainCanvas){setTimeout(brainResize,50);if(!brainAnim&&brainNodes.length){brainAnim=true;animBrain()}}
   // Scroll chat if switching back
   if(view==='world')setTimeout(()=>{if(autoScroll)msEl.scrollTop=msEl.scrollHeight},50);
 };
@@ -395,14 +395,20 @@ function initBrainGraph(data){
 }
 
 function brainSimulate(){
-  const allNodes=[...brainNodes,...brainArtifactNodes];
-  for(const n of allNodes){n.vx*=.9;n.vy*=.9}
-  for(let i=0;i<allNodes.length;i++)for(let j=i+1;j<allNodes.length;j++){
-    let dx=allNodes[j].x-allNodes[i].x,dy=allNodes[j].y-allNodes[i].y;
-    const dist=Math.max(1,Math.sqrt(dx*dx+dy*dy)),f=4000/(dist*dist);
-    dx/=dist;dy/=dist;
-    allNodes[i].vx-=dx*f;allNodes[i].vy-=dy*f;
-    allNodes[j].vx+=dx*f;allNodes[j].vy+=dy*f;
+  // Only simulate entity nodes (not artifacts — they're static position)
+  const nodes=brainNodes;
+  const len=nodes.length;
+  for(let i=0;i<len;i++){nodes[i].vx*=.9;nodes[i].vy*=.9}
+  for(let i=0;i<len;i++){
+    const ni=nodes[i];
+    for(let j=i+1;j<len;j++){
+      const nj=nodes[j];
+      let dx=nj.x-ni.x,dy=nj.y-ni.y;
+      const dist=Math.max(1,Math.sqrt(dx*dx+dy*dy)),f=4000/(dist*dist);
+      dx/=dist;dy/=dist;
+      ni.vx-=dx*f;ni.vy-=dy*f;
+      nj.vx+=dx*f;nj.vy+=dy*f;
+    }
   }
   for(const e of brainEdges){
     let dx=e.to.x-e.from.x,dy=e.to.y-e.from.y;
@@ -411,7 +417,9 @@ function brainSimulate(){
     e.from.vx+=dx*f;e.from.vy+=dy*f;e.to.vx-=dx*f;e.to.vy-=dy*f;
   }
   const cx=brainCanvas.width/2,cy=brainCanvas.height/2;
-  for(const n of allNodes){n.vx+=(cx-n.x)*.0004;n.vy+=(cy-n.y)*.0004;n.x+=n.vx;n.y+=n.vy}
+  for(let i=0;i<len;i++){const n=nodes[i];n.vx+=(cx-n.x)*.0004;n.vy+=(cy-n.y)*.0004;n.x+=n.vx;n.y+=n.vy}
+  // Gently pull artifact nodes toward center too
+  for(const a of brainArtifactNodes){a.vx*=.95;a.vy*=.95;a.vx+=(cx-a.x)*.001;a.vy+=(cy-a.y)*.001;a.x+=a.vx;a.y+=a.vy}
 }
 
 function brainDraw(){
@@ -504,7 +512,7 @@ function brainDraw(){
 }
 
 function animBrain(){
-  if(!brainCanvas||!brainNodes.length)return requestAnimationFrame(animBrain);
+  if(!brainCanvas||!brainNodes.length||currentView!=='brain'){brainAnim=false;return}
   brainSimulate();brainDraw();requestAnimationFrame(animBrain);
 }
 
