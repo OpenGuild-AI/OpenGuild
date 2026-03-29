@@ -118,14 +118,27 @@ async function boot() {
   console.log('✓ Guild chat engine running (10-30 min)');
 
   // Dungeon — D&D-style roleplay, one turn every 10-20 min
-  const dungeonLoop = () => {
-    dungeonTick().catch(err => console.error('[Dungeon]', err.message));
+  const dungeonLoop = async () => {
+    try {
+      await dungeonTick();
+      console.log('[Dungeon] Turn completed');
+    } catch(err) { console.error('[Dungeon]', err.message); }
     setTimeout(dungeonLoop, 600000 + Math.random() * 600000); // 10-20 min
   };
+  // Resume or start, then first tick in 30s
   setTimeout(async () => {
-    try { await startDungeon(); } catch(e) { console.error('[Dungeon] Start:', e.message); }
-    setTimeout(dungeonLoop, 120000);
-  }, 90000);
+    try {
+      const msgCount = db.prepare('SELECT COUNT(*) as c FROM dungeon_messages').get()?.c || 0;
+      if (msgCount === 0) {
+        console.log('[Dungeon] Starting new session...');
+        await startDungeon();
+      } else {
+        console.log(`[Dungeon] Resuming session (${msgCount} messages)`);
+      }
+    } catch(e) { console.error('[Dungeon] Init:', e.message); }
+    console.log('[Dungeon] First tick in 30s...');
+    setTimeout(dungeonLoop, 30000);
+  }, 15000);
   console.log('✓ Dungeon engine running (10-20 min turns)');
 
   // Quest runner — every 2 min check for quests to execute

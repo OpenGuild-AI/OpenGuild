@@ -5,6 +5,8 @@ import { callKimi } from './kimi.js';
 import { archetypes } from '../agents/archetypes.js';
 import { broadcast } from './discussion.js';
 
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
 // DM rotates — but defaults to Hypatia (scholar, good storyteller)
 const DM_ROTATION = ['hypatia', 'da_vinci', 'rumi', 'arendt'];
 const PARTY_SIZE = 4; // 4 players + 1 DM per session
