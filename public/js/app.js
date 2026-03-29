@@ -291,6 +291,7 @@ async function loadIntel(){
 // ══════════════════════════════════
 let brainNodes=[],brainEdges=[],brainCanvas,brainCtx,brainAnim=false;
 let brainArtifactNodes=[];
+let brainEventsInit=false;
 let panX=0,panY=0,zoom=1,isPanning=false,panStart={x:0,y:0};
 let selectedNode=null;
 const TYPE_COLORS={person:'#c848a0',country:'#5080c8',org:'#c8a44e',technology:'#48a8c8',event:'#c85050',concept:'#78c848',region:'#c88848',policy:'#7888a0'};
@@ -310,49 +311,47 @@ async function loadBrain(){
     if(!brainAnim){brainAnim=true;animBrain()}
   },50);
 
-  window.addEventListener('resize',brainResize);
+  // Only bind events ONCE
+  if(!brainEventsInit){
+    brainEventsInit=true;
+    window.addEventListener('resize',brainResize);
 
-  // Mouse events
-  brainCanvas.addEventListener('wheel',(e)=>{e.preventDefault();zoom*=e.deltaY>0?.92:1.08;zoom=Math.max(.3,Math.min(4,zoom))},{passive:false});
-  brainCanvas.addEventListener('mousedown',(e)=>{isPanning=true;panStart={x:e.clientX-panX,y:e.clientY-panY};brainCanvas.style.cursor='grabbing'});
-  brainCanvas.addEventListener('mousemove',(e)=>{if(isPanning){panX=e.clientX-panStart.x;panY=e.clientY-panStart.y}});
-  brainCanvas.addEventListener('mouseup',()=>{isPanning=false;brainCanvas.style.cursor='grab'});
-  brainCanvas.addEventListener('mouseleave',()=>{isPanning=false;brainCanvas.style.cursor='grab'});
-  brainCanvas.style.cursor='grab';
+    brainCanvas.addEventListener('wheel',(e)=>{e.preventDefault();zoom*=e.deltaY>0?.92:1.08;zoom=Math.max(.3,Math.min(4,zoom))},{passive:false});
+    brainCanvas.addEventListener('mousedown',(e)=>{isPanning=true;panStart={x:e.clientX-panX,y:e.clientY-panY};brainCanvas.style.cursor='grabbing'});
+    brainCanvas.addEventListener('mousemove',(e)=>{if(isPanning){panX=e.clientX-panStart.x;panY=e.clientY-panStart.y}});
+    brainCanvas.addEventListener('mouseup',()=>{isPanning=false;brainCanvas.style.cursor='grab'});
+    brainCanvas.addEventListener('mouseleave',()=>{isPanning=false;brainCanvas.style.cursor='grab'});
+    brainCanvas.style.cursor='grab';
 
-  // Click to select node
-  brainCanvas.addEventListener('click',(e)=>{
-    if(isPanning)return;
-    const rect=brainCanvas.getBoundingClientRect();
-    const mx=(e.clientX-rect.left-panX)/zoom,my=(e.clientY-rect.top-panY)/zoom;
-    let hit=null;
-    // Check artifact nodes first (on top)
-    for(const n of brainArtifactNodes){
-      const dx=n.x-mx,dy=n.y-my;
-      if(Math.abs(dx)<n.r+8&&Math.abs(dy)<n.r+8){hit=n;break}
-    }
-    if(!hit){
-      for(const n of brainNodes){
+    brainCanvas.addEventListener('click',(e)=>{
+      if(isPanning)return;
+      const rect=brainCanvas.getBoundingClientRect();
+      const mx=(e.clientX-rect.left-panX)/zoom,my=(e.clientY-rect.top-panY)/zoom;
+      let hit=null;
+      for(const n of brainArtifactNodes){
         const dx=n.x-mx,dy=n.y-my;
-        if(dx*dx+dy*dy<(n.r+10)*(n.r+10)){hit=n;break}
+        if(Math.abs(dx)<n.r+8&&Math.abs(dy)<n.r+8){hit=n;break}
       }
-    }
-    selectedNode=hit;
-    if(hit){
-      if(hit.isArtifact) showArtifactDetail(hit.artifactId);
-      else showBrainDetail(hit.name);
-    } else closeBrainDetail();
-  });
+      if(!hit){
+        for(const n of brainNodes){
+          const dx=n.x-mx,dy=n.y-my;
+          if(dx*dx+dy*dy<(n.r+10)*(n.r+10)){hit=n;break}
+        }
+      }
+      selectedNode=hit;
+      if(hit){
+        if(hit.isArtifact) showArtifactDetail(hit.artifactId);
+        else showBrainDetail(hit.name);
+      } else closeBrainDetail();
+    });
 
-  // Touch events for mobile
-  let touchStart=null;
-  brainCanvas.addEventListener('touchstart',(e)=>{if(e.touches.length===1){touchStart={x:e.touches[0].clientX-panX,y:e.touches[0].clientY-panY}}},{passive:true});
-  brainCanvas.addEventListener('touchmove',(e)=>{if(e.touches.length===1&&touchStart){panX=e.touches[0].clientX-touchStart.x;panY=e.touches[0].clientY-touchStart.y}},{passive:true});
-  brainCanvas.addEventListener('touchend',()=>{touchStart=null});
+    let touchStart=null;
+    brainCanvas.addEventListener('touchstart',(e)=>{if(e.touches.length===1){touchStart={x:e.touches[0].clientX-panX,y:e.touches[0].clientY-panY}}},{passive:true});
+    brainCanvas.addEventListener('touchmove',(e)=>{if(e.touches.length===1&&touchStart){panX=e.touches[0].clientX-touchStart.x;panY=e.touches[0].clientY-touchStart.y}},{passive:true});
+    brainCanvas.addEventListener('touchend',()=>{touchStart=null});
+  }
 
   fetch('/api/brain/backfill',{method:'POST'}).catch(()=>{});
-
-  // Load artifacts panel
   loadBrainArtifacts();
 }
 

@@ -74,8 +74,8 @@ async function boot() {
     await generateDailySummaries();
   });
 
-  // Brain quests every 4 hours
-  cron.schedule('0 */4 * * *', async () => {
+  // Brain quests every 10 minutes — 2 quests per cycle to keep brain growing
+  cron.schedule('*/10 * * * *', async () => {
     console.log('[Cron] Generating brain quests...');
     try {
       const quests = await generateQuestsFromBrain();
@@ -95,10 +95,10 @@ async function boot() {
   setTimeout(guildLoop, 60000);
   console.log('✓ Guild chat engine running (5-10 min)');
 
-  // Quest runner — every 5 min check for quests to execute
+  // Quest runner — every 2 min check for quests to execute
   setInterval(() => {
     runNextQuest().catch(err => console.error('[QuestRunner]', err.message));
-  }, 5 * 60 * 1000);
+  }, 2 * 60 * 1000);
   setTimeout(() => runNextQuest().catch(err => console.error('[QuestRunner]', err.message)), 30000);
   console.log('✓ Quest runner active');
 

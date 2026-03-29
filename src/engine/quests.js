@@ -84,7 +84,7 @@ EXISTING ACTIVE QUESTS (avoid duplicates):
 ${existingTitles || '(none)'}`;
 
   const result = await callKimi(
-    `You are the OpenGuild Brain Curator. Create 3 research quests to grow the knowledge graph.
+    `You are the OpenGuild Brain Curator. Create 2 focused research quests to grow the knowledge graph.
 
 Each quest MUST have:
 - A specific, measurable GOAL (so it's clear when it's done)
