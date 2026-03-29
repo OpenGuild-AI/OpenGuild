@@ -103,10 +103,10 @@ async function boot() {
   // Guild chat loop — every 5-10 min
   const guildLoop = () => {
     guildTick().catch(err => console.error('[GuildChat]', err.message));
-    setTimeout(guildLoop, 300000 + Math.random() * 300000);
+    setTimeout(guildLoop, 600000 + Math.random() * 1200000); // 10-30min
   };
   setTimeout(guildLoop, 60000);
-  console.log('✓ Guild chat engine running (5-10 min)');
+  console.log('✓ Guild chat engine running (10-30 min)');
 
   // Quest runner — every 2 min check for quests to execute
   setInterval(() => {

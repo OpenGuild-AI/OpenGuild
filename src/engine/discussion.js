@@ -647,11 +647,11 @@ export function startDiscussionLoop() {
   // Agent discussion: 5s-120s between messages
   const chatTick = async () => {
     await discussionTick();
-    const delay = 300000 + Math.random() * 300000; // 5min-10min
+    const delay = 600000 + Math.random() * 1200000; // 10min-30min
     discussionTimeout = setTimeout(chatTick, delay);
   };
   chatTick();
-  console.log('[Engine] Discussion loop running (5s-120s)');
+  console.log('[Engine] Discussion loop running (10-30min)');
 }
 
 export function stopDiscussionLoop() {

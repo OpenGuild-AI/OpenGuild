@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent Detail Test</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#242020;color:#e8e0d4;font-family:monospace;padding:1rem}
+.btn{background:#c8a44e;color:#000;padding:.5rem 1rem;border:none;border-radius:4px;font-size:1rem;margin:.3rem;cursor:pointer}
+#result{margin-top:1rem;padding:1rem;background:#2d2928;border:1px solid #3a3430;border-radius:8px;min-height:200px;white-space:pre-wrap;font-size:.75rem}
+.ad-section{padding:.5rem;border-bottom:1px solid #3a3430}
+.ad-label{color:#c8a44e;font-size:.7rem;font-weight:bold}
+.ad-textarea{width:100%;background:#242020;color:#e8e0d4;border:1px solid #3a3430;padding:.4rem;font-family:monospace;font-size:.7rem;border-radius:4px;min-height:60px}
+</style>
+</head><body>
+<h3 style="color:#c8a44e">Agent Detail Test</h3>
+<div>
+<button class="btn" onclick="loadAgent('sokrates')">Sokrates</button>
+<button class="btn" onclick="loadAgent('da_vinci')">Leonardo</button>
+<button class="btn" onclick="loadAgent('nietzsche')">Nietzsche</button>
+</div>
+<div id="result">Click an agent button above...</div>
+
+<script>
+async function loadAgent(id) {
+  const el = document.getElementById('result');
+  el.textContent = 'Loading ' + id + '...';
+  try {
+    const res = await fetch('/api/agents/' + id);
+    const a = await res.json();
+    el.innerHTML = `
+      <div style="color:${a.color};font-size:1.2rem;margin-bottom:.5rem">${a.avatar} ${a.name} — ${a.title}</div>
+      <div class="ad-section">
+        <div class="ad-label">PERSONALITY PROMPT</div>
+        <textarea class="ad-textarea" rows="4">${a.personality||''}</textarea>
+      </div>
+      <div class="ad-section">
+        <div class="ad-label">DISCUSSION PROMPT</div>
+        <textarea class="ad-textarea" rows="4">${a.discussionPrompt||''}</textarea>
+      </div>
+      <div class="ad-section">
+        <div class="ad-label">MODES (${(a.modes||[]).length})</div>
+        ${(a.modes||[]).map((m,i) => '<div style="margin:.3rem 0;color:#888">w:'+m.w+' — '+m.instruction+'</div>').join('')}
+      </div>
+      <div class="ad-section">
+        <div class="ad-label">INTERESTS</div>
+        <div>${(a.interests||[]).join(', ')}</div>
+      </div>
+    `;
+  } catch(e) {
+    el.textContent = 'Error: ' + e.message;
+  }
+}
+</script>
+</body></html>
