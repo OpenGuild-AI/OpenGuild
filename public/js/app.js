@@ -563,9 +563,14 @@ function brainDraw(){
   brainCtx.restore();
 }
 
+let brainFrame=0;
 function animBrain(){
   if(!brainCanvas||!brainNodes.length||currentView!=='brain'){brainAnim=false;return}
-  brainSimulate();brainDraw();requestAnimationFrame(animBrain);
+  brainFrame++;
+  // Simulate every 2nd frame to save CPU
+  if(brainFrame%2===0)brainSimulate();
+  brainDraw();
+  requestAnimationFrame(animBrain);
 }
 
 // ── Brain Detail Panel ──
