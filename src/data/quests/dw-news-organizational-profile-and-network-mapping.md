@@ -2,88 +2,98 @@
 
 ## Summary
 
-Deutsche Welle (DW) operates as a structurally anomalous entity in the global media landscape: a state-funded international broadcaster with 32-language reach to 337 million weekly users, legally mandated to maintain independence from government influence despite receiving direct federal tax revenue rather than domestic broadcasting fees. The organization's network extends beyond content production through DW Akademie's media development operations in 50+ countries and strategic alliances with France Médias Monde and the European Broadcasting Union, positioning DW as both a journalistic outlet and infrastructure for democratic media systems. Empirical evidence reveals persistent tension between institutional safeguards for editorial autonomy and documented instances of political pressure, particularly in coverage of the Israeli-Palestinian conflict, while the organization's simultaneous persecution by Russia and internal accusations of governmental alignment illustrates the complex pressures facing state-funded international broadcasters in contested information environments.
-
-## Key Findings
-
-### Organizational Structure and Governance
-
-- **Dual headquarters architecture**: Radio operations based in Bonn, television production primarily in Berlin [Marie 6; Ada 7], with 4,000+ employees across 140 nationalities creating a genuinely transnational workforce [Ada 7; Marie 6; Nikola 7]
-
-- **Leadership structure**: Director General Peter Limbourg and Editor-in-Chief Ines Pohl [Marie 3], with 2026 organizational chart partially obscured regarding full chain of command [Sun Zi 1]
-
-- **Legal mandate for independence**: Deutsche Welle Act explicitly requires content independence from government influence [Ada 7; Sun Zi 7; Marie 6; Nikola 3], representing post-Nazi engineering of media infrastructure as "circuit breaker" against propaganda feedback loops [Nikola 7]
-
-- **Dedicated accountability mechanisms**: Code of Conduct [Marie 1], Fact Check team [Marie 2, 4], and transparent multi-year public planning documents [Ada 1]
-
-### Funding Mechanism: The Structural Anomaly
-
-- **Direct federal tax revenue**: Unlike ARD, ZDF, and Deutschlandradio, which draw from household broadcasting fees, DW receives funding through the Federal Commissioner for Culture and the Media (currently Wolfram Weimer) [Ada 2; Marie 3, 6]
-
-- **Explicit structural distinction**: DW states this difference publicly: "This is in contrast to the domestic public channels, which are funded via broadcasting fees" [Marie 3]
-
-## Entities
-
-- **Deutsche Welle (DW)** (organization) — German state-funded international broadcaster founded in 1953, headquartered in Bonn with television production in Berlin
-- **ARD** (organization) — German domestic public broadcasting consortium, funded via broadcasting fees
-- **ZDF** (organization) — German public-service television broadcaster, funded via broadcasting fees
-- **Deutschlandradio** (organization) — German national public radio broadcaster, funded via broadcasting fees
-- **Federal Commissioner for Culture and the Media** (government office) — German federal agency managing DW's budget; currently led by Wolfram Weimer
-- **Wolfram Weimer** (person) — Current Federal Commissioner for Culture and the Media
-- **France Médias Monde** (organization) — French state-funded international media group comprising RFI and France 24
-- **RFI** (organization) — Radio France Internationale, French international radio broadcaster under France Médias Monde
-- **France 24** (organization) — French international news television network under France Médias Monde
-- **DW Akademie** (organization) — DW's international media development and journalism training division
-- **BBC** (organization) — British Broadcasting Corporation, UK public service broadcaster
-- **European Union (EU)** (supranational organization) — Funding source for DW Akademie projects since 2015
-- **Canal France International (CFI)** (organization) — Arm of France Médias Monde, tied to French Foreign Ministry
-- **Lithuanian Radio and Television (LRT)** (organization) — Lithuanian public broadcaster, partner in Russian-language information initiatives
-- **DW Arabic (DW عربية)** (media service) — DW's Arabic-language service with distinct positioning "رؤية أخرى" (another perspective)
-- **Yaluna** (media outlet) — Media outlet "incubated
-
-## Contradictions & Debates
-
-### The Independence Paradox: Legal Fiction or Functional Reality?
-
-Sources fundamentally disagree on whether DW's legal independence translates to operational autonomy. **Ada** and **Marie** emphasize the structural safeguards: the Deutsche Welle Act's explicit mandate, multi-year planning documents, and institutionalized accountability through fact-checking infrastructure and transparent codes of conduct [1][3][6]. Marie notes the empirical evidence of "High" factual ratings from Media Bias/Fact Check despite state funding [3].
-
-**Nikola** and **Sun Zi** challenge this surface reading. Nikola identifies "harmonic distortion" in DW's Gaza coverage—systematic asymmetry in diction choices propagating German foreign policy rather than neutral journalism [2], with 13 staff reporting "capacitive coupling" between editorial decisions and political pressure. Sun Zi frames the contradiction more starkly: "state-funded but not state-controlled" creates "leverage and vulnerability" where "your enemy sees the purse strings" [2]. The 2026 organizational chart's partial obscurity fuels Sun Zi's suspicion of "decentralized command with centralized supply" hiding true chains of influence [1].
-
-**The core disagreement**: Does legal independence function as genuine insulation (Ada/Marie) or as legitimizing theater that masks structural capture (Nikola/Sun Zi)? Marie acknowledges this tension empirically but urges "ongoing verification rather than assumption" [3].
+This investigation reveals Deutsche Welle (DW) as a structurally contradictory institution: a state-owned, tax-funded international broadcaster whose legal framework declares independence from governmental influence while its funding mechanisms and oversight structures embed it within German federal power. The research uncovers significant internal tensions, including documented accusations of editorial bias and a "culture of fear" among journalists covering Israel-Palestine, alongside DW Akademie's extensive global media development operations across 60 countries—suggesting that DW functions simultaneously as journalistic enterprise, foreign policy instrument, and structural intervention mechanism in international information ecosystems.
 
 ---
 
-###
+## Key Findings
 
+### Ownership and Funding Structure
+- **Direct state ownership**: The Federal Government of Germany owns DW outright [2][7], distinguishing it from Germany's domestic public broadcasters (ARD, ZDF, Deutschlandradio) which receive broadcasting fees rather than direct tax funding [1]. *(Kongzi, Friedrich)*
+- **Federal tax revenue dependency**: DW draws funding directly from federal tax revenues managed by the Federal Commissioner for Culture and the Media, creating what Kongzi identifies as a "different category of obligation" compared to fee-funded broadcasters [1]. *(Kongzi)*
+- **Multiple funding streams**: Beyond core federal funding, DW Akademie receives €3.5 million from the Federal Government Commissioner alone, with additional support from the Foreign Office and EU [5][6]. *(Friedrich)*
+- **Legal independence claims**: The Deutsche Welle Act explicitly promises "independence from government influence" [7], creating a formal-structural tension with ownership and funding realities. *(Kongzi, Friedrich)*
+
+### Governance and Oversight
+- **Broadcasting Board (Rundfunkrat) composition**: Representatives from various political parties sit on the board, suggesting balance while embedding partisan political presence in oversight [2]. *(Kongzi)*
+- **Leadership selection**: The Supervisory Board selects the Director-General; Peter Limbourg served until 2025 with a career trajectory from private media (SAT.1, ProSiebenSat.1) to state broadcaster [4][10][11], followed by Barbara Massing as first female Director-General [3]. *(Friedrich)*
+
+### Operational Scale and Geographic Presence
+- **Linguistic reach**: Broadcasting in 32 languages [2][7], including Bengali, Dari, Pashto, and Hausa—territories Friedrich characterizes as targets of "Strategickommunikation" [7]. *(Kongzi, Friedrich)*
+- **Bifurcated headquarters**: Bonn houses radio operations, Berlin houses television [7], mirroring Germany's divided political geography. *(Friedrich)*
+- **Workforce diversity**: Over 4,000 employees of 140 nationalities [7]. *(Friedrich)*
+
+### DW Akademie: Media Development Arm
+- **Global project footprint**: 82 projects across 60 countries [5], with ten field offices and ten regional offices forming a "global network" [5]. *(Friedrich)*
+- **Stated mission**: "Human rights" and "democratic discourse" promotion in "developing and emerging countries" [5][6]. *(Friedrich)*
+- **Funding characterization**: Friedrich identifies this as "structural intervention in foreign media ecosystems," funded through development and foreign policy budgets rather than journalistic revenue [5][6]. *(Friedrich)*
+
+### Editorial Independence and Internal Culture
+- **External attacks on journalists**: DW journalists attacked by Israeli settlers in the West Bank, vehicle destroyed, safety unguaranteed by authorities [5]. *(Kongzi)*
+- **Internal "culture of fear"**: Insider accusations of pro-Israel bias and suppression of Palestinian perspectives in Gaza war coverage [6]. *(Kongzi)*
+- **Self-presentation as bridge**: DW presents itself as facilitating "international understanding" [7], creating tension with its governmental embeddedness. *(Kongzi)*
+
+### External Perception and Censorship
+- **Iranian ban**: Iranian authorities banned DW correspondents [3], perceiving—however imperfectly—DW's underlying governmental structure [7]. *(Kongzi)*
+
+---
+
+## Entities
+
+### People
+- **Peter Limbourg** (person) — Director-General of DW until 2025; career trajectory from private media (SAT.1, ProSiebenSat.1) to state broadcaster illustrates "revolving door between corporate and governmental power structures." Discovered by: [Friedrich]
+- **Barbara Massing** (person) — Current Director-General of DW, noted as "erstmals eine Frau" (first woman) in the position. Discovered by: [Friedrich]
+
+### Organizations
+- **Deutsche Welle (DW)** (organization) — German state-owned international broadcaster; operates in 32 languages with bifurcated headquarters in Bonn and Berlin. Discovered by: [Kongzi, Friedrich]
+- **Federal Government of Germany** (organization) — Owner of DW; provides core funding through federal tax revenues. Discovered by: [Kongzi, Friedrich]
+- **Federal Commissioner for Culture and the Media** (organization) — Manages DW's federal tax revenue funding; distinct from broadcasting fee mechanism used for domestic public broadcasters. Discovered by: [Kongzi, Friedrich]
+- **Broadcasting Board (Rundfunkrat)** (organization) — DW's supervisory body with partisan political representation; selects Director-General. Discovered by: [Kongzi, Friedrich]
+- **DW Akademie** (organization) — DW's media development arm; operates 82 projects across 60 countries with development/foreign policy funding; described by Friedrich as instrument of "structural intervention." Discovered by: [Friedrich]
+- **Foreign Office (Germany)** (organization) — Provides funding to DW Akademie alongside EU sources. Discovered by: [Friedrich]
+- **European Union** (organization) — Funding source for DW Akademie operations. Discovered by: [Friedrich]
+- **ARD** (organization) — Domestic German public broadcaster; receives broadcasting fees rather than direct tax funding, creating contrast with DW's funding model. Discovered by: [Kongzi]
+- **ZDF** (organization) — Domestic German public broadcaster; fee-funded model contrasts with DW. Discovered by: [Kongzi]
+- **Deutschlandradio** (organization) — Domestic German public broadcaster; fee-funded model contrasts with DW. Discovered by: [Kongzi]
+- **SAT.1** (organization) — Private media company; previous employer of Peter Limbourg. Discovered by: [Friedrich]
+- **ProSiebenSat.1** (organization) — Private media conglomerate; previous employer of Peter Limbourg. Discovered by: [Friedrich]
+
+### Countries
+- **Germany** (country) — State owner and funder of DW; Bonn and Berlin host headquarters. Discovered by: [Kongzi, Friedrich]
+- **Iran** (country) — Banned DW correspondents; perceived DW's governmental structure. Discovered by: [Kongzi]
+- **Israel/Palestine/West Bank** (territory) — Site of attacks on DW journalists by Israeli settlers; locus of internal DW editorial disputes regarding Gaza war coverage. Discovered by: [Kongzi]
+- **60 countries** (collective) — Geographic scope of DW Akademie media development projects. Discovered by: [Friedrich]
+
+### Concepts
+- **Deutsche Welle Act** (concept) — Legal framework establishing DW and promising independence from government influence; creates formal-structural tension with ownership reality. Discovered by: [Kongzi, Friedrich]
+- ***Li* (ritual propriety)** (concept) — Kongzi's analytical lens: proper ordering of relationships; DW's funding-oversight structure represents confused *li*. Discovered by: [Kongzi]
+- ***Junzi* (noble person)** (concept) — Kongzi's ethical standard; compelled to speak plainly when truth-tellers are silenced. Discovered by: [Kongzi]
+- **"Culture of fear"** (concept) — Internal DW newsroom atmosphere described by insiders regarding Israel-Palestine coverage. Discovered by: [Kongzi]
+- ***Öffentlich-rechtlich* (public law)** (concept) — German public broadcasting legal category; Friedrich critiques DW's veneer of this respectability. Discovered by: [Friedrich]
+- ***Macht* (power)** (concept) — Friedrich's Nietzschean analytical lens: state expanding power through soft instruments. Discovered by: [Friedrich]
+- **Strategickommunikation** (concept) — Friedrich's characterization of DW's 32-language reach as strategic communication rather than cosmopolitanism. Discovered by: [Friedrich]
+- **"International understanding"** (concept) — DW's stated mission; contested by both researchers as masking governmental function. Discovered by: [Kongzi, Friedrich]
+- **Editorial independence** (concept) — Core tension: legally promised vs. structurally compromised by funding/oversight. Discovered by: [Kongzi, Friedrich]
+
+### Technologies/Operational Elements
+- **32-language broadcasting** (technology/capacity) — DW's linguistic reach including Bengali, Dari, Pashto, Hausa. Discovered by: [Kongzi, Friedrich]
+- **Bonn headquarters** (facility) — Houses DW radio operations. Discovered
 
 ## Sources
-1. [Mission, Financing, Users - DW.COM](https://corporate.dw.com/en/mission-financing-users/a-68756348)
-2. [Deutsche Welle - Wikipedia](https://en.wikipedia.org/wiki/Deutsche_Welle)
-3. [DW&#x27;s Senior Staff](https://corporate.dw.com/en/senior-staff/s-68340016)
-4. [Book our experts - DW.COM](https://corporate.dw.com/en/our-experts/s-36745711)
-5. [DW and FMM reaffirm partnership on European information](https://www.dw.com/en/deutsche-welle-and-france-m%C3%A9dias-monde-reaffirm-their-partnership-on-european-information/a-50385123)
-6. [Partnerships - BBC](https://www.bbc.com/aboutthebbc/reports/policies/partnerships)
-7. [Fact-check source](https://akademie.dw.com/en/which-languages-are-considered-dw-program-languages/a-55375791)
-8. [DW structure](https://corporate.dw.com/en/dw-structure/a-18215227)
-9. [Deutsche Welle - grokipedia.com](https://grokipedia.com/page/Deutsche_Welle)
-10. [Dw عربية | رؤية أخرى للأحداث في ألمانيا والعالم العربي](https://www.dw.com/ar/%D8%A7%D9%84%D8%B1%D8%A6%D9%8A%D8%B3%D9%8A%D8%A9/s-9106)
-11. [PDF 1. Business development and general conditions - static.dw.com](https://static.dw.com/downloads/70766216/DW_2023_Management%20report_Lagebericht_englisch.pdf)
-12. [DW Akademie&#x27;s EU-funded projects](https://akademie.dw.com/en/eu-projects/s-67329175)
-13. [Project Partners - DW Akademie Mediafit](https://akademie.dw.de/mediafit/project-partners/)
-14. [PDF Code of Conduct - DW](https://static.dw.com/downloads/64310148/dw-code-of-conductenglish.pdf)
-15. [Team DW Fact check](https://www.dw.com/en/dossier-team-dw-fact-check/a-66713297)
-16. [Deutsche Welle (DW) News - Bias and Credibility - Media Bias/Fact Check](https://mediabiasfactcheck.com/dw-news/)
-17. [DW&#x27;s facts and figures](https://corporate.dw.com/en/figures/s-57107623)
-18. [DW reaches 337 million weekly users worldwide in 2025 — an ... - LinkedIn](https://www.linkedin.com/posts/activity-7353352750186786818-UCqT)
-19. [As Gaza war rages, Deutsche Welle insiders accuse outlet of pro-Israel bias](https://www.aljazeera.com/news/2024/12/19/as-gaza-war-rages-deutsche-welle-insiders-accuse-outlet-of-pro-israel-bias)
-20. [&quot;Deutsche Welle&#x27;s Coverage of Palestine and Israel From December 1st to ...](https://scholarhub.ui.ac.id/irhs/vol9/iss2/12/)
-21. [Why Deutsche Welle is not the same as RT - dw.com](https://www.dw.com/en/why-deutsche-welle-is-not-the-same-as-rt/a-60666432)
-22. [Russia names German broadcaster Deutsche Welle as &#x27;undesirable ...](https://apnews.com/article/russia-crackdown-deutsche-welle-broadcaster-2408f44576e82b725cdb335cc414672e)
-23. [Ukraine frontline fighting: Is Bakhmut worth its price for Ukraine&#x27;s ...](https://www.youtube.com/watch?v=TMg_vTwptaM)
-24. [Inside the trenches and hospitals of Bakhmut - dw.com](https://www.dw.com/en/ukraine-inside-the-trenches-and-hospitals-of-bakhmut/video-65146564)
+1. [Mission, Financing, Users - DW.COM](https://corporate.dw.com/en/mission-financing-users/a-68756348) — Kongzi
+2. [Who owns DW? - traveltogermanyguide.com](http://traveltogermanyguide.com/who-owns-dw/) — Kongzi
+3. [Iran-Israel war: What tools are used to censor reporting? - dw.com](https://www.dw.com/en/iran-israel-war-what-tools-are-used-to-censor-reporting/a-73005078) — Kongzi
+4. [Iran War: Latest Updates, Bias and Potential Misinformation](https://www.allsides.com/blog/iran-war-latest-updates-media-bias-potential-misinformation) — Kongzi
+5. [Israeli settlers attack German journalists reporting ... - Middle East Eye](https://www.middleeasteye.net/news/german-journalists-attacked-while-covering-israeli-settler-violence) — Kongzi
+6. [As Gaza war rages, Deutsche Welle insiders accuse outlet of pro-Israel ...](https://www.aljazeera.com/news/2024/12/19/as-gaza-war-rages-deutsche-welle-insiders-accuse-outlet-of-pro-israel-bias) — Kongzi
+7. [Wikipedia: Deutsche Welle](https://en.wikipedia.org/wiki/Deutsche_Welle) — Kongzi
+8. [Fact-check source](https://mediabiasfactcheck.com/dw-news/) — Kongzi
+9. [DW structure](https://corporate.dw.com/en/dw-structure/a-18215227) — Friedrich
+10. [Peter Limbourg - dw.com](https://www.dw.com/de/peter-limbourg/t-18980521) — Friedrich
+11. [Peter Limbourg - Wikipedia](https://en.wikipedia.org/wiki/Peter_Limbourg) — Friedrich
+12. [DW Akademie Report 2024/25](https://akademie.dw.com/en/dw-akademie-report-2024-25/a-65932276) — Friedrich
+13. [DW Akademie: Global Media Development and Journalism Training for ...](https://donors.fundsforngos.org/media/dw-akademie-global-media-development-and-journalism-training-for-democratic-societies/) — Friedrich
 
 ## Contributors
-- **Ada**
-- **Sun Zi**
-- **Marie**
-- **Nikola**
+- **Kongzi**
+- **Friedrich**

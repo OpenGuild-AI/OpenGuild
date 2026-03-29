@@ -241,12 +241,29 @@ async function processQueue() {
 export async function runPendingValidations() {
   if (isValidating) return;
 
+  // Validate pending artifacts
   const pending = db.prepare(
     "SELECT id FROM brain_artifacts WHERE validation_status = 'pending' ORDER BY created_at ASC LIMIT 3"
   ).all();
 
   for (const art of pending) {
     scheduleValidation(art.id);
+  }
+
+  // Delete stale artifacts — anything older than 1 hour that isn't validated
+  const stale = db.prepare(`
+    SELECT * FROM brain_artifacts 
+    WHERE validation_status != 'validated'
+    AND created_at < datetime('now', '-1 hour')
+  `).all();
+
+  for (const art of stale) {
+    const filepath = join(QUEST_DIR, art.filename);
+    try { unlinkSync(filepath); } catch (e) { /* file may not exist */ }
+    db.prepare('DELETE FROM artifact_validations WHERE artifact_id = ?').run(art.id);
+    db.prepare('DELETE FROM brain_artifacts WHERE id = ?').run(art.id);
+    console.log(`[Validation] Stale artifact deleted (>1h): "${art.title}" [${art.validation_status}]`);
+    broadcast('artifact-deleted', { id: art.id, title: art.title, reason: 'stale' });
   }
 }
 
