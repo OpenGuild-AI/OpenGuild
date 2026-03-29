@@ -344,7 +344,7 @@ const STATUS_COLORS={pending:'#666',validating:'#c8a44e',validated:'#48c878',rej
 async function loadBrain(){
   const res=await fetch('/api/brain');const data=await res.json();
   document.getElementById('brain-stats').innerHTML=
-    `<b>${data.stats.entities}</b> entities · <b>${data.stats.connections}</b> connections · <b>${data.stats.topics}</b> topics · <b>${data.stats.artifacts||0}</b> artifacts`;
+    `<b>${data.stats.entities}</b> entities · <b>${data.stats.connections}</b> connections · <b>${data.stats.topics}</b> topics · <span class="brain-artifacts-toggle" onclick="toggleArtifactsPanel()"><b>${data.stats.artifacts||0}</b> artifacts</span>`;
 
   brainCanvas=document.getElementById('brain-canvas');
   brainCtx=brainCanvas.getContext('2d');
@@ -396,7 +396,6 @@ async function loadBrain(){
   }
 
   fetch('/api/brain/backfill',{method:'POST'}).catch(()=>{});
-  loadBrainArtifacts();
 }
 
 function brainResize(){
@@ -674,6 +673,14 @@ function renderArtifactCard(a){
 window.toggleArchive=function(){
   const el=document.getElementById('ba-archive');
   if(el)el.style.display=el.style.display==='none'?'block':'none';
+};
+
+window.toggleArtifactsPanel=function(){
+  const panel=document.getElementById('brain-artifacts-panel');
+  if(!panel)return;
+  const visible=panel.style.display!=='none';
+  panel.style.display=visible?'none':'flex';
+  if(!visible)loadBrainArtifacts();
 };
 
 window.filterArtifacts=function(q){

@@ -234,6 +234,9 @@ body::after{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;o
 .brain-topbar{flex-shrink:0;display:flex;align-items:center;padding:.4rem 1rem;border-bottom:1px solid var(--border);gap:.8rem}
 .brain-stat{font-family:var(--mono);font-size:.6rem;color:var(--dim);display:flex;gap:.8rem}
 .brain-stat b{color:var(--accent);font-weight:500;margin-right:.15rem}
+.brain-artifacts-toggle{cursor:pointer;padding:.1rem .3rem;border-radius:3px;transition:background .15s}
+.brain-artifacts-toggle:hover{background:rgba(200,164,78,.15)}
+.brain-artifacts-toggle b{color:var(--accent)}
 
 .brain-body{flex:1;display:flex;overflow:hidden;position:relative}
 .brain-graph-wrap{flex:1;overflow:hidden;position:relative}
