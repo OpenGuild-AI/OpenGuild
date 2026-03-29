@@ -479,8 +479,8 @@ function brainDraw(){
     brainCtx.beginPath();brainCtx.moveTo(e.from.x,e.from.y);brainCtx.lineTo(e.to.x,e.to.y);
     const isSelected=selectedNode&&(e.from===selectedNode||e.to===selectedNode);
     const isVerified=e.verified||false;
-    brainCtx.strokeStyle=isSelected?e.from.color+'80':isVerified?'#48c87860':e.from.color+'20';
-    brainCtx.lineWidth=isSelected?Math.max(1,e.strength):isVerified?Math.max(1.5,e.strength*1.5):Math.max(.5,e.strength*.5);
+    brainCtx.strokeStyle=isSelected?'#ffffffcc':isVerified?'#ffffff90':'#ffffff30';
+    brainCtx.lineWidth=isSelected?Math.max(1.5,e.strength):isVerified?Math.max(1,e.strength*1.2):Math.max(.3,e.strength*.4);
     brainCtx.stroke();
     if(zoom>.6){
       const mx=(e.from.x+e.to.x)/2,my=(e.from.y+e.to.y)/2;
