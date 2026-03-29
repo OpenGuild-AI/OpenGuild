@@ -231,6 +231,9 @@ async function loadAgents(){
 }
 
 function renderAgentsGrid(){
+  // Don't re-render if agent detail is open — it would kill the detail view
+  const detail=document.getElementById('agent-detail-inline');
+  if(detail&&detail.style.display==='block')return;
   const stateMap={};agentStates.forEach(s=>{stateMap[s.agent_id]=s});
   const active=agentStates.filter(s=>s.status==='active').length;
   const guild=agentStates.filter(s=>s.status==='guild').length;
