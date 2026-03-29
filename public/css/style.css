@@ -523,12 +523,13 @@ body::after{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;o
 .ad-energy .energy-bar{flex:1;height:6px}
 .ad-energy-text{font-size:.5rem;color:var(--dim)}
 .ad-state{font-size:.55rem;color:var(--dim)}
-.ad-actions{padding:.8rem 1rem;border-top:1px solid var(--border);display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap}
+.ad-actions{padding:.8rem 1rem;border-top:1px solid var(--border);display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap;position:sticky;bottom:0;background:var(--card);z-index:1}
 .ad-btn{font-family:var(--mono);font-size:.55rem;padding:.3rem .8rem;border-radius:4px;cursor:pointer;border:1px solid var(--border);transition:all .15s}
 .ad-btn-apply{background:var(--accent);color:var(--bg);border-color:var(--accent)}
 .ad-btn-apply:hover{opacity:.85}
-.ad-btn-save{background:transparent;color:var(--accent);border-color:var(--accent)}
+.ad-btn-save{background:transparent;color:var(--accent);border-color:var(--accent);min-width:120px}
 .ad-btn-save:hover{background:var(--accent);color:var(--bg)}
+.ad-btn-apply{min-width:120px}
 .ad-loading{padding:2rem;text-align:center;font-size:.6rem;color:var(--dim)}
 .agent-card{cursor:pointer;transition:transform .1s}
 .agent-card:hover{transform:translateY(-2px)}
