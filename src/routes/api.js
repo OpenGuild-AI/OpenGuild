@@ -8,6 +8,7 @@ import { getDiary, generateDailySummaries } from '../engine/diary.js';
 import { generatePredictions } from '../engine/predictions.js';
 import { getGuildMessages, onUserGuildMessage } from '../engine/guild-chat.js';
 import { generateQuestsFromBrain, voteOnQuest } from '../engine/quests.js';
+import { getArtifactValidations, validateArtifact, scheduleValidation } from '../engine/validation.js';
 
 const router = express.Router();
 
@@ -405,6 +406,18 @@ router.post('/brain/backfill', async (req, res) => {
 router.get('/brain/artifacts', (req, res) => {
   const artifacts = getBrainArtifacts();
   res.json(artifacts);
+});
+
+// Artifact validations
+router.get('/brain/artifacts/:id/validations', (req, res) => {
+  const validations = getArtifactValidations(parseInt(req.params.id));
+  res.json(validations);
+});
+
+router.post('/brain/artifacts/:id/validate', async (req, res) => {
+  const id = parseInt(req.params.id);
+  scheduleValidation(id);
+  res.json({ status: 'queued', artifactId: id });
 });
 
 // Guild messages

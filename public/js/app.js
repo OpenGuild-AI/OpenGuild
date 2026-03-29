@@ -290,14 +290,16 @@ async function loadIntel(){
 // BRAIN VIEW
 // ══════════════════════════════════
 let brainNodes=[],brainEdges=[],brainCanvas,brainCtx,brainAnim=false;
+let brainArtifactNodes=[];
 let panX=0,panY=0,zoom=1,isPanning=false,panStart={x:0,y:0};
 let selectedNode=null;
 const TYPE_COLORS={person:'#c848a0',country:'#5080c8',org:'#c8a44e',technology:'#48a8c8',event:'#c85050',concept:'#78c848',region:'#c88848',policy:'#7888a0'};
+const STATUS_COLORS={pending:'#666',validating:'#c8a44e',validated:'#48c878',rejected:'#c85050'};
 
 async function loadBrain(){
   const res=await fetch('/api/brain');const data=await res.json();
   document.getElementById('brain-stats').innerHTML=
-    `<b>${data.stats.entities}</b> entities · <b>${data.stats.connections}</b> connections · <b>${data.stats.topics}</b> topics`;
+    `<b>${data.stats.entities}</b> entities · <b>${data.stats.connections}</b> connections · <b>${data.stats.topics}</b> topics · <b>${data.stats.artifacts||0}</b> artifacts`;
 
   brainCanvas=document.getElementById('brain-canvas');
   brainCtx=brainCanvas.getContext('2d');
@@ -324,13 +326,22 @@ async function loadBrain(){
     const rect=brainCanvas.getBoundingClientRect();
     const mx=(e.clientX-rect.left-panX)/zoom,my=(e.clientY-rect.top-panY)/zoom;
     let hit=null;
-    for(const n of brainNodes){
+    // Check artifact nodes first (on top)
+    for(const n of brainArtifactNodes){
       const dx=n.x-mx,dy=n.y-my;
-      if(dx*dx+dy*dy<(n.r+10)*(n.r+10)){hit=n;break}
+      if(Math.abs(dx)<n.r+8&&Math.abs(dy)<n.r+8){hit=n;break}
+    }
+    if(!hit){
+      for(const n of brainNodes){
+        const dx=n.x-mx,dy=n.y-my;
+        if(dx*dx+dy*dy<(n.r+10)*(n.r+10)){hit=n;break}
+      }
     }
     selectedNode=hit;
-    if(hit)showBrainDetail(hit.name);
-    else closeBrainDetail();
+    if(hit){
+      if(hit.isArtifact) showArtifactDetail(hit.artifactId);
+      else showBrainDetail(hit.name);
+    } else closeBrainDetail();
   });
 
   // Touch events for mobile
@@ -340,6 +351,9 @@ async function loadBrain(){
   brainCanvas.addEventListener('touchend',()=>{touchStart=null});
 
   fetch('/api/brain/backfill',{method:'POST'}).catch(()=>{});
+
+  // Load artifacts panel
+  loadBrainArtifacts();
 }
 
 function brainResize(){
@@ -356,23 +370,40 @@ function initBrainGraph(data){
     return{id:e.id,name:e.name,type:e.type,mentions:e.mention_count,
       x:w/2+Math.cos(angle)*r,y:h/2+Math.sin(angle)*r,
       vx:0,vy:0,r:Math.max(5,Math.min(14,e.mention_count*2)),
-      color:TYPE_COLORS[e.type]||'#888'};
+      color:TYPE_COLORS[e.type]||'#888',isArtifact:false};
   });
   brainEdges=data.connections.map(c=>({
     from:brainNodes.find(n=>n.name===c.from_name),
     to:brainNodes.find(n=>n.name===c.to_name),
     rel:c.relation,strength:c.strength
   })).filter(e=>e.from&&e.to);
+
+  // Add artifact nodes (diamonds) — fetch separately
+  fetch('/api/brain/artifacts').then(r=>r.json()).then(artifacts=>{
+    brainArtifactNodes=artifacts.map((a,idx)=>{
+      const angle=(idx/Math.max(1,artifacts.length))*Math.PI*2;
+      const dist=Math.min(w,h)*0.15+Math.random()*30;
+      return{
+        artifactId:a.id,name:a.title||a.filename,
+        status:a.validation_status||'pending',
+        x:w/2+Math.cos(angle)*dist,y:h/2+Math.sin(angle)*dist,
+        vx:0,vy:0,r:10,
+        color:STATUS_COLORS[a.validation_status]||'#c8a44e',
+        isArtifact:true
+      };
+    });
+  }).catch(()=>{});
 }
 
 function brainSimulate(){
-  for(const n of brainNodes){n.vx*=.9;n.vy*=.9}
-  for(let i=0;i<brainNodes.length;i++)for(let j=i+1;j<brainNodes.length;j++){
-    let dx=brainNodes[j].x-brainNodes[i].x,dy=brainNodes[j].y-brainNodes[i].y;
+  const allNodes=[...brainNodes,...brainArtifactNodes];
+  for(const n of allNodes){n.vx*=.9;n.vy*=.9}
+  for(let i=0;i<allNodes.length;i++)for(let j=i+1;j<allNodes.length;j++){
+    let dx=allNodes[j].x-allNodes[i].x,dy=allNodes[j].y-allNodes[i].y;
     const dist=Math.max(1,Math.sqrt(dx*dx+dy*dy)),f=4000/(dist*dist);
     dx/=dist;dy/=dist;
-    brainNodes[i].vx-=dx*f;brainNodes[i].vy-=dy*f;
-    brainNodes[j].vx+=dx*f;brainNodes[j].vy+=dy*f;
+    allNodes[i].vx-=dx*f;allNodes[i].vy-=dy*f;
+    allNodes[j].vx+=dx*f;allNodes[j].vy+=dy*f;
   }
   for(const e of brainEdges){
     let dx=e.to.x-e.from.x,dy=e.to.y-e.from.y;
@@ -381,7 +412,7 @@ function brainSimulate(){
     e.from.vx+=dx*f;e.from.vy+=dy*f;e.to.vx-=dx*f;e.to.vy-=dy*f;
   }
   const cx=brainCanvas.width/2,cy=brainCanvas.height/2;
-  for(const n of brainNodes){n.vx+=(cx-n.x)*.0004;n.vy+=(cy-n.y)*.0004;n.x+=n.vx;n.y+=n.vy}
+  for(const n of allNodes){n.vx+=(cx-n.x)*.0004;n.vy+=(cy-n.y)*.0004;n.x+=n.vx;n.y+=n.vy}
 }
 
 function brainDraw(){
@@ -431,6 +462,45 @@ function brainDraw(){
       brainCtx.fillText(n.type+' · ×'+n.mentions,n.x,n.y+n.r+22);
     }
   }
+
+  // Artifact nodes (diamonds)
+  for(const a of brainArtifactNodes){
+    const isSel=a===selectedNode;
+    const alpha=selectedNode?(isSel?'ff':'40'):'cc';
+    const r=isSel?a.r*1.4:a.r;
+    const col=a.color;
+
+    // Pulsing glow for validating status
+    let glowAlpha='15';
+    if(a.status==='validating'){
+      glowAlpha=Math.floor(15+10*Math.sin(Date.now()/300)).toString(16).padStart(2,'0');
+    }
+
+    // Glow
+    const g=brainCtx.createRadialGradient(a.x,a.y,0,a.x,a.y,r*3);
+    g.addColorStop(0,col+glowAlpha);g.addColorStop(1,'transparent');
+    brainCtx.fillStyle=g;brainCtx.fillRect(a.x-r*4,a.y-r*4,r*8,r*8);
+
+    // Diamond shape
+    brainCtx.beginPath();
+    brainCtx.moveTo(a.x,a.y-r);brainCtx.lineTo(a.x+r,a.y);
+    brainCtx.lineTo(a.x,a.y+r);brainCtx.lineTo(a.x-r,a.y);
+    brainCtx.closePath();
+    brainCtx.fillStyle=col+alpha;brainCtx.fill();
+    if(isSel){brainCtx.strokeStyle=col;brainCtx.lineWidth=2;brainCtx.stroke()}
+
+    // Label
+    const fontSize=isSel?11:9;
+    brainCtx.fillStyle=isSel||!selectedNode?textColor:dimColor;
+    brainCtx.font=(isSel?'500 ':'400 ')+fontSize+'px DM Mono';brainCtx.textAlign='center';
+    const label=a.name.length>25?a.name.slice(0,22)+'…':a.name;
+    brainCtx.fillText(label,a.x,a.y+r+12);
+    if(isSel){
+      brainCtx.fillStyle=dimColor;brainCtx.font='8px DM Mono';
+      brainCtx.fillText('artifact · '+a.status,a.x,a.y+r+22);
+    }
+  }
+
   brainCtx.restore();
 }
 
@@ -498,6 +568,86 @@ window.selectBrainNode=function(name){
     showBrainDetail(name);
   }
 };
+
+// ── Brain Artifacts Panel ──
+async function loadBrainArtifacts(){
+  const panel=document.getElementById('brain-artifacts-panel');
+  if(!panel)return;
+  try{
+    const res=await fetch('/api/brain/artifacts');
+    const artifacts=await res.json();
+    if(!artifacts.length){panel.innerHTML='<div class="ba-empty">No artifacts yet</div>';return}
+    panel.innerHTML=`
+      <div class="ba-header">
+        <span class="ba-title">Artifacts (${artifacts.length})</span>
+        <input class="ba-search" type="text" placeholder="Search…" oninput="filterArtifacts(this.value)">
+      </div>
+      <div class="ba-list" id="ba-list">
+        ${artifacts.map(a=>`
+          <div class="ba-card ba-status-${a.validation_status||'pending'}" data-title="${esc(a.title||a.filename).toLowerCase()}" onclick="showArtifactDetail(${a.id})">
+            <div class="ba-card-title">${esc(a.title||a.filename)}</div>
+            <div class="ba-card-meta">
+              <span class="ba-badge ba-badge-${a.validation_status||'pending'}">${a.validation_status||'pending'}</span>
+              <span class="ba-date">${(a.created_at||'').split('T')[0]||'—'}</span>
+            </div>
+            ${a.agent_ids?`<div class="ba-agents">${a.agent_ids.split(',').map(id=>{const ar=window._archetypes?.find(x=>x.id===id.trim());return ar?`<span class="ba-agent-dot" style="background:${ar.color}" title="${ar.name}"></span>`:`<span class="ba-agent-dot" title="${id.trim()}"></span>`}).join('')}</div>`:''}
+          </div>
+        `).join('')}
+      </div>`;
+  }catch(e){panel.innerHTML='<div class="ba-empty">Error loading artifacts</div>'}
+}
+
+window.filterArtifacts=function(q){
+  const cards=document.querySelectorAll('#ba-list .ba-card');
+  const query=q.toLowerCase();
+  cards.forEach(c=>{c.style.display=c.dataset.title.includes(query)?'':'none'});
+};
+
+window.showArtifactDetail=async function(id){
+  const panel=document.getElementById('brain-detail');
+  panel.classList.add('open');
+  panel.innerHTML='<div style="padding:1rem;font-size:.7rem;color:var(--dim)">Loading artifact...</div>';
+  try{
+    const [artRes,valRes]=await Promise.all([fetch('/api/brain/artifacts'),fetch(`/api/brain/artifacts/${id}/validations`)]);
+    const artifacts=await artRes.json();
+    const validations=await valRes.json();
+    const a=artifacts.find(x=>x.id===id);
+    if(!a){panel.innerHTML='<div style="padding:1rem">Not found</div>';return}
+    const sc=STATUS_COLORS[a.validation_status]||'#888';
+    panel.innerHTML=`
+      <div class="bd-header" style="position:relative">
+        <button class="bd-close" onclick="closeBrainDetail()">✕</button>
+        <div class="bd-name" style="color:${sc}">◆ ${esc(a.title||a.filename)}</div>
+        <span class="ba-badge ba-badge-${a.validation_status}" style="margin-top:4px;display:inline-block">${a.validation_status}</span>
+        <div class="bd-meta">${(a.created_at||'').split('T')[0]||'—'}</div>
+      </div>
+      ${validations.length?`<div class="bd-section">
+        <div class="bd-section-label">Validation Votes (${validations.length})</div>
+        ${validations.map(v=>`
+          <div class="ba-vote ba-vote-${v.vote}">
+            <span class="ba-vote-agent" style="color:${v.agent_color||'#888'}">${esc(v.agent_name||v.agent_id)}</span>
+            <span class="ba-vote-badge">${v.vote==='approve'?'✓':'✗'} ${v.vote}</span>
+            <div class="ba-vote-reason">${esc(v.reasoning||'')}</div>
+            ${v.facts_checked?`<div class="ba-vote-facts">${v.facts_verified}/${v.facts_checked} facts verified</div>`:''}
+          </div>
+        `).join('')}
+      </div>`:'<div class="bd-section"><div class="bd-section-label">No validations yet</div></div>'}
+      <div class="bd-section">
+        <button class="ba-validate-btn" onclick="triggerValidation(${id})">Trigger Validation</button>
+      </div>`;
+  }catch(e){panel.innerHTML='<div style="padding:1rem;font-size:.7rem;color:var(--dim)">Error</div>'}
+};
+
+window.triggerValidation=async function(id){
+  try{
+    await fetch(`/api/brain/artifacts/${id}/validate`,{method:'POST'});
+    const btn=document.querySelector('.ba-validate-btn');
+    if(btn){btn.textContent='Queued ✓';btn.disabled=true}
+  }catch(e){}
+};
+
+// Load archetypes for agent dots
+fetch('/api/archetypes').then(r=>r.json()).then(a=>{window._archetypes=a}).catch(()=>{});
 
 // ══════════════════════════════════
 // PREDICTIONS VIEW

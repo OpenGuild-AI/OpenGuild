@@ -4,6 +4,7 @@ import { callKimi } from './kimi.js';
 import { archetypes } from '../agents/archetypes.js';
 import { getGuildAgents, spendEnergy } from './agent-state.js';
 import { broadcast } from './discussion.js';
+import { detectSkillTrigger, executeSkill, getEnabledSkills } from './skill-engine.js';
 
 let isRunning = false;
 let pendingUserMsg = null; // queue user messages for agent response
@@ -159,13 +160,54 @@ Continue the conversation naturally (1-3 sentences). You must respond to what wa
 
     broadcast('guild-typing', { agent_id: speaker.agent_id, agent_name: arch.name });
 
-    const result = await callKimi(prompt, '', { maxTokens: 150, temperature: 0.9 });
-    if (!result?.text) { isRunning = false; return; }
+    // 20% chance to activate a skill instead of normal chat
+    const shouldUseSkill = Math.random() < 0.20;
+    let responseText = null;
+
+    if (shouldUseSkill && recent.length >= 5) {
+      // Pick a random enabled skill weighted by context
+      const skills = getEnabledSkills();
+      if (skills.length) {
+        const skill = skills[Math.floor(Math.random() * skills.length)];
+        console.log(`[GuildChat] ${arch.name} activating skill: ${skill.name}`);
+
+        // Build context for skill execution
+        const lastMsg = recent[recent.length - 1];
+        const skillContext = {
+          message: lastMsg?.content || '',
+          topic: lastMsg?.content || '',
+          claim: lastMsg?.content || '',
+          recentMessages: recent.map(m => ({
+            agent_id: m.agent_id,
+            agent_name: getArchetype(m.agent_id)?.name || m.agent_id,
+            content: m.content
+          }))
+        };
+
+        try {
+          const skillOutput = await executeSkill(skill, speaker.agent_id, skillContext);
+          if (skillOutput) {
+            responseText = skillOutput.trim();
+            // Prefix with skill badge
+            responseText = `⚡ [${skill.name}] ${responseText}`;
+          }
+        } catch (e) {
+          console.error(`[GuildChat] Skill execution error:`, e.message);
+        }
+      }
+    }
+
+    // Fall back to normal conversation if skill didn't produce output
+    if (!responseText) {
+      const result = await callKimi(prompt, '', { maxTokens: 150, temperature: 0.9 });
+      if (!result?.text) { isRunning = false; return; }
+      responseText = result.text.trim();
+    }
 
     await new Promise(r => setTimeout(r, 1500 + Math.random() * 2000));
 
     broadcast('guild-typing-done', {});
-    postGuildMessage(speaker.agent_id, result.text.trim(), result.usage?.prompt_tokens || 0, result.usage?.completion_tokens || 0);
+    postGuildMessage(speaker.agent_id, responseText, 0, 0);
 
   } catch (err) {
     console.error('[GuildChat] tick error:', err.message);

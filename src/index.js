@@ -13,6 +13,7 @@ import { generateDailySummaries } from './engine/diary.js';
 import { guildTick } from './engine/guild-chat.js';
 import { generateQuestsFromBrain } from './engine/quests.js';
 import { runNextQuest } from './engine/quest-runner.js';
+import { runPendingValidations } from './engine/validation.js';
 import { fetchAllFeeds } from './feeds/rss.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -99,6 +100,14 @@ async function boot() {
   }, 5 * 60 * 1000);
   setTimeout(() => runNextQuest().catch(err => console.error('[QuestRunner]', err.message)), 30000);
   console.log('✓ Quest runner active');
+
+  // Validation engine — check for pending validations every 10 min
+  cron.schedule('*/10 * * * *', async () => {
+    console.log('[Cron] Checking pending validations...');
+    await runPendingValidations();
+  });
+  setTimeout(() => runPendingValidations().catch(err => console.error('[Validation]', err.message)), 60000);
+  console.log('✓ Validation engine active');
 
   app.listen(PORT, '127.0.0.1', () => {
     console.log(`✓ Server running on http://127.0.0.1:${PORT}`);

@@ -5,6 +5,7 @@ import { archetypes } from '../agents/archetypes.js';
 import { getGuildAgents } from './agent-state.js';
 import { broadcast } from './discussion.js';
 import { ingestQuestOutput } from './brain.js';
+import { webSearch, fetchPage } from './tools.js';
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
@@ -29,63 +30,6 @@ function postGuildMsg(agentId, content) {
     agent_color: arch?.color || '#888', agent_avatar: arch?.avatar || '?',
     tokens_in: 0, tokens_out: 0, created_at: new Date().toISOString(), is_user: false
   });
-}
-
-// Web search — tries Brave API first, falls back to DuckDuckGo HTML scraping
-async function webSearch(query) {
-  // Try Brave API if key exists
-  if (process.env.BRAVE_API_KEY) {
-    try {
-      const res = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`, {
-        headers: { 'Accept': 'application/json', 'Accept-Encoding': 'gzip', 'X-Subscription-Token': process.env.BRAVE_API_KEY }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return (data.web?.results || []).map(r => ({ title: r.title, url: r.url, description: r.description || '' }));
-      }
-    } catch (e) { console.error('[QuestRunner] Brave search error:', e.message); }
-  }
-
-  // Fallback: DuckDuckGo lite
-  try {
-    const res = await fetch(`https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`, {
-      headers: { 'User-Agent': 'OpenGuild/1.0' }, signal: AbortSignal.timeout(10000)
-    });
-    if (!res.ok) return [];
-    const html = await res.text();
-    const results = [];
-    const linkRegex = /<a[^>]+class="result-link"[^>]*href="([^"]+)"[^>]*>([^<]+)</g;
-    let match;
-    while ((match = linkRegex.exec(html)) && results.length < 5) {
-      results.push({ title: match[2].trim(), url: match[1], description: '' });
-    }
-    // Fallback: extract any http links from result snippets
-    if (!results.length) {
-      const hrefRegex = /<a[^>]+href="(https?:\/\/[^"]+)"[^>]*>([^<]{5,})</g;
-      while ((match = hrefRegex.exec(html)) && results.length < 5) {
-        if (!match[1].includes('duckduckgo.com')) {
-          results.push({ title: match[2].trim(), url: match[1], description: '' });
-        }
-      }
-    }
-    return results;
-  } catch (e) { console.error('[QuestRunner] DDG search error:', e.message); return []; }
-}
-
-// Fetch and extract text from URL
-async function fetchPage(url) {
-  try {
-    const res = await fetch(url, { headers: { 'User-Agent': 'OpenGuild/1.0' }, signal: AbortSignal.timeout(10000) });
-    if (!res.ok) return '';
-    const html = await res.text();
-    // Basic HTML stripping
-    return html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .slice(0, 8000);
-  } catch (e) { return ''; }
 }
 
 // Main quest execution pipeline
@@ -285,6 +229,13 @@ Generate a .md file with these sections:
     postGuildMsg(lead.agent_id, `Quest completed: "${quest.title}". Report saved to brain. Found ${allFindings.length} sources, identified new entities and connections.`);
 
     broadcast('quest-completed', { id: questId, title: quest.title, filename });
+
+    // Phase 8: Trigger validation of the artifact
+    try {
+      const { scheduleValidation } = await import('./validation.js');
+      const artifact = db.prepare('SELECT id FROM brain_artifacts WHERE quest_id = ? ORDER BY id DESC LIMIT 1').get(questId);
+      if (artifact) scheduleValidation(artifact.id);
+    } catch (e) { console.error('[QuestRunner] Validation trigger error:', e.message); }
 
   } catch (err) {
     console.error(`[QuestRunner] Error on quest ${questId}:`, err.message);
