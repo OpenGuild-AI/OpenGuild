@@ -296,86 +296,6 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // Ingest verified facts into brain graph — boost entity/connection confidence
 async function ingestVerifiedFacts(verifiedFacts, artifactTitle) {
-
-// Full artifact ingestion — extract ALL entities, connections, facts when validated
-async function ingestValidatedArtifact(content, title, factsVerified, factsChecked) {
-  if (!content || content.length < 100) return;
-
-  console.log(`[Validation] Extracting knowledge from validated artifact: "${title}" (${content.length} chars)`);
-
-  // Big extraction call — pull everything from the .md
-  const extractResult = await callKimi(
-    `Extract ALL knowledge from this validated research report for a knowledge graph.
-
-Output EXACT format, one per line:
-ENTITY: name | type | description
-CONNECTION: entity_a | relation | entity_b
-FACT: factual statement
-
-Types: person, org, country, event, concept, technology, region, policy, treaty, conflict, institution
-
-Extract EVERYTHING — every person, organization, country, event, concept, relationship mentioned.
-Be thorough. 20-50 items expected from a full report.`,
-    content.slice(0, 6000),
-    { maxTokens: 1500, temperature: 0.2 }
-  );
-
-  if (!extractResult?.text) return;
-
-  const lines = extractResult.text.split('\n');
-  let entitiesAdded = 0, connectionsAdded = 0;
-
-  for (const line of lines) {
-    const entityMatch = line.match(/^ENTITY:\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+)/i);
-    const connMatch = line.match(/^CONNECTION:\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+)/i);
-
-    if (entityMatch) {
-      const [, name, type, desc] = entityMatch;
-      const cleanName = name.trim();
-      const cleanType = type.trim().toLowerCase();
-      if (cleanName.length < 2 || cleanName.length > 100) continue;
-
-      db.prepare(`
-        INSERT INTO brain_entities (name, type, description, verified, confidence, mention_count)
-        VALUES (?, ?, ?, 1, 'high', 3)
-        ON CONFLICT(name) DO UPDATE SET
-          verified = 1,
-          confidence = 'high',
-          description = CASE WHEN length(?) > length(COALESCE(description,'')) THEN ? ELSE description END,
-          mention_count = mention_count + 2,
-          last_seen = datetime('now')
-      `).run(cleanName, cleanType, desc.trim(), desc.trim(), desc.trim());
-      entitiesAdded++;
-    }
-
-    if (connMatch) {
-      const [, entityA, relation, entityB] = connMatch;
-      const a = db.prepare('SELECT id FROM brain_entities WHERE name = ?').get(entityA.trim());
-      const b = db.prepare('SELECT id FROM brain_entities WHERE name = ?').get(entityB.trim());
-
-      if (a && b && a.id !== b.id) {
-        const existing = db.prepare(
-          'SELECT id, strength FROM brain_connections WHERE entity_a = ? AND entity_b = ? AND relation = ?'
-        ).get(a.id, b.id, relation.trim());
-
-        if (existing) {
-          db.prepare(
-            'UPDATE brain_connections SET strength = strength + 1.5, verified = 1, confidence = ? WHERE id = ?'
-          ).run('high', existing.id);
-        } else {
-          db.prepare(
-            'INSERT OR IGNORE INTO brain_connections (entity_a, entity_b, relation, strength, verified, confidence) VALUES (?, ?, ?, 2.5, 1, ?)'
-          ).run(a.id, b.id, relation.trim(), 'high');
-        }
-        connectionsAdded++;
-      }
-    }
-  }
-
-  console.log(`[Validation] Validated artifact ingested: +${entitiesAdded} entities, +${connectionsAdded} connections (all verified)`);
-}
-
-
   if (!verifiedFacts.length) return;
 
   console.log(`[Validation] Ingesting ${verifiedFacts.length} verified facts into brain`);
@@ -441,4 +361,80 @@ Only extract what's explicitly stated. No speculation.`,
     }
     await sleep(500);
   }
+}
+
+// Full artifact ingestion — extract ALL entities, connections, facts when validated
+async function ingestValidatedArtifact(content, title, factsVerified, factsChecked) {
+  if (!content || content.length < 100) return;
+
+  console.log(`[Validation] Extracting knowledge from validated artifact: "${title}" (${content.length} chars)`);
+
+  const extractResult = await callKimi(
+    `Extract ALL knowledge from this validated research report for a knowledge graph.
+
+Output EXACT format, one per line:
+ENTITY: name | type | description
+CONNECTION: entity_a | relation | entity_b
+
+Types: person, org, country, event, concept, technology, region, policy, treaty, conflict, institution
+
+Extract EVERYTHING — every person, organization, country, event, concept, relationship mentioned.
+Be thorough. 20-50 items expected from a full report.`,
+    content.slice(0, 6000),
+    { maxTokens: 1500, temperature: 0.2 }
+  );
+
+  if (!extractResult?.text) return;
+
+  const lines = extractResult.text.split('\n');
+  let entitiesAdded = 0, connectionsAdded = 0;
+
+  for (const line of lines) {
+    const entityMatch = line.match(/^ENTITY:\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+)/i);
+    const connMatch = line.match(/^CONNECTION:\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+)/i);
+
+    if (entityMatch) {
+      const [, name, type, desc] = entityMatch;
+      const cleanName = name.trim();
+      const cleanType = type.trim().toLowerCase();
+      if (cleanName.length < 2 || cleanName.length > 100) continue;
+
+      db.prepare(`
+        INSERT INTO brain_entities (name, type, description, verified, confidence, mention_count)
+        VALUES (?, ?, ?, 1, 'high', 3)
+        ON CONFLICT(name) DO UPDATE SET
+          verified = 1,
+          confidence = 'high',
+          description = CASE WHEN length(?) > length(COALESCE(description,'')) THEN ? ELSE description END,
+          mention_count = mention_count + 2,
+          last_seen = datetime('now')
+      `).run(cleanName, cleanType, desc.trim(), desc.trim(), desc.trim());
+      entitiesAdded++;
+    }
+
+    if (connMatch) {
+      const [, entityA, relation, entityB] = connMatch;
+      const a = db.prepare('SELECT id FROM brain_entities WHERE name = ?').get(entityA.trim());
+      const b = db.prepare('SELECT id FROM brain_entities WHERE name = ?').get(entityB.trim());
+
+      if (a && b && a.id !== b.id) {
+        const existing = db.prepare(
+          'SELECT id, strength FROM brain_connections WHERE entity_a = ? AND entity_b = ? AND relation = ?'
+        ).get(a.id, b.id, relation.trim());
+
+        if (existing) {
+          db.prepare(
+            'UPDATE brain_connections SET strength = strength + 1.5, verified = 1, confidence = ? WHERE id = ?'
+          ).run('high', existing.id);
+        } else {
+          db.prepare(
+            'INSERT OR IGNORE INTO brain_connections (entity_a, entity_b, relation, strength, verified, confidence) VALUES (?, ?, ?, 2.5, 1, ?)'
+          ).run(a.id, b.id, relation.trim(), 'high');
+        }
+        connectionsAdded++;
+      }
+    }
+  }
+
+  console.log(`[Validation] Validated artifact ingested: +${entitiesAdded} entities, +${connectionsAdded} connections (all verified)`);
 }
